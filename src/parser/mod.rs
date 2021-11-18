@@ -46,11 +46,9 @@ mod tests {
         };
     }
 
-    /// Ensure we can parse all common cairo files from cairo-lang
-    #[test]
-    fn parse_common_cairo_files() {
+    fn parse_files_in_folder(dir: impl AsRef<Path>) {
         for file in
-            std::fs::read_dir(Path::new(&env!("CARGO_MANIFEST_DIR")).join("common")).unwrap()
+            std::fs::read_dir(Path::new(&env!("CARGO_MANIFEST_DIR")).join(dir.as_ref())).unwrap()
         {
             let file = file.unwrap();
             let file_name = format!("{}", file.path().file_name().unwrap().to_string_lossy());
@@ -62,5 +60,16 @@ mod tests {
             );
             CairoFile::parse(&content).expect(&file_name);
         }
+    }
+
+    /// Ensure we can parse all common cairo files from cairo-lang
+    #[test]
+    fn parse_common_cairo_files() {
+        parse_files_in_folder("common")
+    }
+
+    #[test]
+    fn parse_testdata_cairo_files() {
+        parse_files_in_folder("test-data")
     }
 }

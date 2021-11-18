@@ -330,17 +330,17 @@ impl<'input> CairoLexer<'input> {
                             Some(self.hint(i, i + 2))
                         }
                         Some((_, 'b')) => {
-                            if self.input[i..].starts_with("builtins") {
-                                self.chars.nth(8);
-                                Some(Ok((i, CairoToken::Builtins, i + 8)))
+                            if self.input[i..].starts_with("%builtins") {
+                                self.chars.nth(9);
+                                Some(Ok((i, CairoToken::Builtins, i + 9)))
                             } else {
                                 Some(Ok((i, CairoToken::Percent, i + 1)))
                             }
                         }
                         Some((_, 'l')) => {
-                            if self.input[i..].starts_with("lang") {
-                                self.chars.nth(4);
-                                Some(Ok((i, CairoToken::Lang, i + 4)))
+                            if self.input[i..].starts_with("%lang") {
+                                self.chars.nth(5);
+                                Some(Ok((i, CairoToken::Lang, i + 5)))
                             } else {
                                 Some(Ok((i, CairoToken::Percent, i + 1)))
                             }
