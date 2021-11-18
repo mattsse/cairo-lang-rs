@@ -17,8 +17,7 @@ Parse the content of a cairo file
 ```rust
 use cairo_lang::CairoFile;
 
-let content = std::fs::read_to_string("file.cairo").unwrap();
-let instructions = CairoFile::parse(&content).unwrap();
+let instructions = CairoFile::read("file.cairo").unwrap();
 ```
 
 Licensed under either of these:
