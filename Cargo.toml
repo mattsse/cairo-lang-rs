@@ -1,0 +1,22 @@
+[package]
+name = "cairo-lang-rs"
+version = "0.1.0"
+authors = ["Matthias Seitz <matthias.seitz@outlook.de>"]
+edition = "2018"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/mattsse/cairo-lang-rs"
+repository = "https://github.com/mattsse/cairo-lang-rs"
+
+
+[build-dependencies]
+lalrpop = "0.19.6"
+
+[dependencies]
+lalrpop-util = { version = "0.19.6", features = ["lexer"] }
+thiserror = "1.0.30"
+unicode-xid = "0.2.2"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
