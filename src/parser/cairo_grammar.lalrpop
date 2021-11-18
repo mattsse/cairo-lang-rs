@@ -1,0 +1,432 @@
+use crate::ast::*;
+use crate::lexer::{CairoLexerError, CairoToken};
+use std::borrow::Cow;
+
+grammar<'input>(input: &'input str);
+
+// ----------- Imports ---------------
+
+ImportDirective: ImportDirective = {
+    "from" <segments:Identifier> <functions:FunctionImport> => ImportDirective {segments, functions},
+};
+
+Directive: Directive = {
+     "%builtins" <builtin:Id+> => Directive::Builtins(<>),
+     "%lang" <name:Identifier> => Directive::Lang(<>),
+}
+
+Rename: String = {
+    "as" <id:Id>  => id
+}
+
+AliasedId: AliasedId = {
+   <id:Id> <alias:Rename?> => AliasedId { id, alias }
+}
+
+FunctionImport: FunctionImport = {
+    "import" <imports:("("notes <Comma<AliasedId>> ")")> => FunctionImport::Parantheses(imports),
+    "import"  <imports:(notes <CommaOne<AliasedId>>)> => FunctionImport::Direct(imports),
+}
+
+// ------------- Types ------------------
+
+Atom: Expr = {
+    "nondet" <x:Hint>  => Expr::Hint(<>),
+    <n:number> => Expr::Int(n.parse().unwrap()),
+    <s:shortstring> => Expr::ShortString(s.to_string()),
+    <s:hexnumber> => Expr::HexInt(s.to_string()),
+    Register  => Expr::Register(<>),
+    FunctionCall  => Expr::FunctionCall(<>),
+    "[" notes <x:Expr> "]"  => Expr::Deref(Box::new(x)),
+    <pre:Atom> "[" notes <x:Expr> "]"  => Expr::Subscript(Box::new(pre), Box::new(x)),
+    <id:Identifier> "[" notes <x:Expr> "]"  => Expr::Subscript(Box::new(Expr::Id(id)), Box::new(x)),
+    <x:Atom> "." <s:Id> =>  Expr::Dot(Box::new(x), s),
+    "cast" "(" notes <x:Expr> "," <ty:Type> ")"  => Expr::Cast(Box::new(x),ty),
+    "(" <args:ArgList> ")"  => Expr::Parentheses(args),
+}
+
+Pow: Expr = {
+     Identifier => Expr::Id(<>),
+     Atom,
+     <lhs:Atom> "**" <rhs:Pow>   => Expr::Pow(Box::new(lhs), Box::new(rhs)),
+     <id:Identifier> "**" <rhs:Pow>   => Expr::Pow(Box::new(Expr::Id(id)), Box::new(rhs)),
+}
+
+Unary: Expr = {
+   Pow,
+   "&" <x:Unary>  => Expr::Address(Box::new(x)),
+   "-" <x:Unary>  => Expr::Neg(Box::new(x)),
+}
+
+Product: Expr = {
+    Unary,
+    <lhs:Product> "*" notes <rhs:Unary>    => Expr::Mul(Box::new(lhs), Box::new(rhs)),
+    <lhs:Product> "/" notes <rhs:Unary>    => Expr::Div(Box::new(lhs), Box::new(rhs)),
+}
+
+Sum: Expr = {
+    Product,
+    <lhs:Sum> "+" notes <rhs:Product> => Expr::Add(Box::new(lhs),Box::new(rhs)),
+    <lhs:Sum> "-" notes <rhs:Product> => Expr::Sub(Box::new(lhs),Box::new(rhs)),
+}
+
+Expr: Expr = {
+    Sum
+}
+
+BoolExpr: BoolExpr = {
+   <lhs:Expr> "!="  <rhs:Expr>  => BoolExpr::NotEqual(lhs, rhs),
+   <lhs:Expr> "=="  <rhs:Expr>  => BoolExpr::Equal(lhs, rhs),
+}
+
+Type: Type = {
+    <s:PointerType> => Type::Pointer(Box::new(s)),
+    "felt"  => Type::Felt,
+    <s:Identifier> => Type::Id(<>),
+    "(" <e:Type> <v:("," <Type>)*>  ")" => {
+           let mut v = v;
+           v.insert(0, e);
+           Type::Tuple(v)
+    },
+    "(" <e:Type> <v:("," <Type>)+> "," ")" => {
+         let mut v = v;
+         v.insert(0, e);
+         Type::Tuple(v)
+    },
+    "(" <e:Type> "," ")" => Type::Tuple(vec![e]),
+    "(" ")" => Type::Tuple(vec![]),
+}
+
+Call: Call = {
+    "call" "rel" <x:Expr> => Call::Rel(<>),
+    "call" "abs" <x:Expr> => Call::Abs(<>),
+    "call" <s:Identifier>  => Call::Id(<>),
+}
+
+Jmp: Jmp = {
+    "jmp" "rel" <x:Expr> => Jmp::Rel(<>),
+    "jmp" "abs" <x:Expr> => Jmp::Abs(<>),
+    "jmp" <s:Identifier>  => Jmp::Id(<>),
+    "jmp" "rel" <x:Expr> "if" <cond:Expr> "!=" <n:INT> => Jmp::RelIf(x, cond, n),
+    "jmp" <s:Identifier>  "if" <cond:Expr> "!=" <n:INT> => Jmp::IdIf(s, cond,  n),
+}
+
+IfStatement: IfStatement = {
+   "if" <cond:BoolExpr> ":" newline <instructions:CodeBlock> <else_branch:ElseBranch?> "end" => IfStatement{cond,instructions, else_branch}
+}
+
+ElseBranch: Vec<Instruction> = {
+    "else" ":" newline <s:CodeBlock> => s
+}
+
+PointerType: PointerType = {
+    <s:Type>"*" => PointerType::Single(<>),
+     <s:Type> "**" => PointerType::Double(<>),
+};
+
+Register: Register = {
+    "ap" => Register::Ap,
+    "fp" => Register::Fp,
+}
+
+ConstantDef: ConstantDef = {
+    "const" <name:Id> "=" <init:Expr> => ConstantDef {name, init},
+}
+
+Namespace: Namespace = {
+    <decorators:DecoratorList>  "namespace" <name:Id> ":" newline <instructions:CodeBlock> "end"=> Namespace {decorators, name, instructions }
+}
+
+Struct: Struct = {
+    <decorators:DecoratorList>  "struct" <name:Id> ":" newline <members:Member*> "end"=> Struct {decorators, name, members }
+}
+
+Member: Pair = {
+    notes "member" <pair:Pair> newline => pair
+}
+
+FunctionDef: FunctionDef = {
+   <decorators:DecoratorList>  "func" <name:Id>  <implicit_args:ImplicitArgs?> "("<input_args:IdentifierList>")" newline* <return_values:ReturnArgs?> ":" newline <instructions:CodeBlock> "end" => FunctionDef {decorators, name, implicit_args, input_args, return_values, instructions  }
+}
+
+pub CodeBlock: Vec<Instruction> = {
+   notes <s:CodeLine*> => s,
+}
+
+CodeLine: Instruction = {
+   <s:CodeElement> newline+ => s
+}
+
+pub CodeElement: Instruction = {
+    InstructionBody,
+    <s:InstructionBody> ";" "ap" "++" => Instruction::ApAdd(Box::new(s))
+}
+
+InstructionBody: Instruction = {
+ ConstantDef => Instruction::Const(<>),
+ "member" <ty:TypedIdentifier> => Instruction::Member(ty),
+ "let" <binding:RefBinding> "=" <rvalue:RValue> => Instruction::Let(binding, Box::new(rvalue)),
+ "local" <ty:TypedIdentifier> <x:AssignExpr?> => Instruction::Local(ty, x),
+ "tempvar" <ty:TypedIdentifier> <x:AssignExpr?> => Instruction::Tempvar(ty, x),
+ "assert" <lhs:Expr> "=" <rhs:Expr> => Instruction::Assert(lhs, rhs),
+ "static_assert" <lhs:Expr> "==" <rhs:Expr> => Instruction::StaticAssert(lhs, rhs),
+ <x:ReturnStmt> => Instruction::Return(<>),
+ "return" <s:FunctionCall> => Instruction::ReturnFunctionCall(<>),
+ IfStatement => Instruction::If(<>),
+ Call => Instruction::CallInstruction(<>),
+ FunctionCall => Instruction::FunctionCall(<>),
+ <s:Identifier> ":" => Instruction::Label(<>),
+<lhs:Expr> "=" <rhs:Expr> => Instruction::Assign(lhs,rhs),
+ FunctionDef => Instruction::Function(<>),
+ Struct => Instruction::Struct(<>),
+ Namespace => Instruction::Namespace(<>),
+ WithStatement => Instruction::WithStatement(<>),
+ WithAttrStatement => Instruction::WithAttrStatement(<>),
+ ImportDirective => Instruction::Import(<>),
+ Directive => Instruction::Directive(<>),
+ Hint => Instruction::Hint(<>),
+ "alloc_locals" => Instruction::AllocLocals,
+ Jmp => Instruction::Jmp(<>),
+ "ret" => Instruction::Ret,
+ "ap" "+=" <x:Expr> => Instruction::ApAddAssign(<>),
+}
+
+WithStatement: WithStatement = {
+    "with" <ids:(notes <CommaOne<AliasedId>>)> ":" newline <instructions:CodeBlock> "end" => WithStatement {ids, instructions}
+}
+
+StringNotes: String = {
+   <s:String> notes => s
+}
+
+AttrVal: Vec<String> = {
+   "(" notes <vals:StringNotes*> ")" => vals
+}
+
+WithAttrStatement: WithAttrStatement = {
+   "with_attr" <id:Id> <attr_val:AttrVal?> ":" newline <instructions:CodeBlock> "end" => WithAttrStatement {id,attr_val, instructions}
+}
+
+FunctionCall: FunctionCall  = {
+   <id:Identifier>  <implicit_args:ImplicitArgsList?> "("<args:ArgList>")"  => FunctionCall{id, implicit_args, args},
+}
+
+RValue: RValue  = {
+  Call => RValue::Call(<>),
+  Expr => RValue::Expr(<>),
+}
+
+AssignExpr: Expr = {
+  "=" <x:Expr> => x
+}
+
+IdentifierList: Vec<TypedIdentifier>  = {
+   notes => vec![],
+   notes <types:(TypedIdentifier notes "," notes)+> => {
+       types.into_iter().map(|(arg,_,_,_)|arg).collect::<Vec<_>>()
+   },
+   notes <types:(TypedIdentifier notes "," notes)*> <other:TypedIdentifier> notes => {
+      let mut types = types.into_iter().map(|(arg,_,_,_)|arg).collect::<Vec<_>>();
+      types.push(other);
+      types
+   },
+}
+
+ArgList: Vec<ExprAssignment>  = {
+   notes => vec![],
+   notes <types:(ExprAssignment exprSeperator)+> => {
+        types.into_iter().map(|(arg,_,)|arg).collect::<Vec<_>>()
+    },
+   notes <types:(ExprAssignment exprSeperator)*> <other:ExprAssignment> => {
+         let mut types = types.into_iter().map(|(arg,_,)|arg).collect::<Vec<_>>();
+         types.push(other);
+         types
+   },
+}
+
+ImplicitArgsList: Vec<ExprAssignment> = {
+    "{" <args:ArgList> "}" => args
+}
+
+ImplicitArgs: Vec<TypedIdentifier> = {
+    "{" <args:IdentifierList> "}" => args
+}
+
+ReturnArgs: Vec<TypedIdentifier> = {
+    "->" newline* "(" <args:IdentifierList> ")" => args
+}
+
+ReturnStmt: Vec<ExprAssignment> = {
+    "return" "(" <args: ArgList> ")" => args
+}
+
+Pair: Pair = {
+    <name:Id> ":" <ty:Type> => Pair{name, ty}
+}
+
+TypedIdentifier: TypedIdentifier  = {
+  "local" <id:Id> <ty:TypeHint?> => TypedIdentifier{is_local: true, id, ty },
+   <id:Id> <ty:TypeHint?> => TypedIdentifier{is_local: false, id, ty },
+}
+
+RefBinding: RefBinding = {
+    <ty:TypedIdentifier> => RefBinding::Id(<>),
+    "(" <ty:IdentifierList> ")" => RefBinding::List(<>),
+}
+
+TypeHint: Type = {
+  ":" <ty:Type> => ty
+}
+
+ExprAssignment: ExprAssignment = {
+    <lhs:Expr> => ExprAssignment::Expr(lhs),
+    <id:Id> "=" <rhs:Expr> => ExprAssignment::Id(id, rhs),
+}
+
+// ------------- Utils ------------------
+
+Decorator: IDStr = {
+ "@" <s:Id> newline* => s
+}
+DecoratorList: Vec<IDStr> = {
+  <s:Decorator*> => s
+}
+
+INT: i128 = {
+  "-" <n:number> => -n.parse::<i128>().unwrap(),
+   <n:number> => n.parse::<i128>().unwrap(),
+}
+
+String: String = {
+    <s:string> => s.to_string(),
+};
+
+Id: IDStr = {
+    <s:identifier> => s.to_string(),
+};
+
+Identifier: Identifier = {
+    <s:PuncuatedOne<identifier>> => s.into_iter().map(str::to_string).collect::<Vec<_>>(),
+};
+
+Hint: String = {
+    <s:hint> => s.to_string(),
+};
+
+NoteOrNewLine: Option<Cow<'input, str>> = {
+    newline => None,
+    comment => Some(Cow::Borrowed(<>)),
+}
+
+notes: Vec<Option<Cow<'input, str>>> = {
+  NoteOrNewLine*
+}
+
+nomemptyNotes: Vec<Option<Cow<'input, str>>> = {
+  NoteOrNewLine+
+}
+
+commaOrNonEmptyNotes:() = {
+    "," => (),
+    newline => (),
+    comment => (),
+}
+
+exprSeperator = {
+   commaOrNonEmptyNotes+
+}
+Comma<T>: Vec<T> = {
+    => Vec::new(),
+    CommaOne<T>,
+};
+
+CommaOne<T>: Vec<T> = {
+    <e:T> <v:("," <T>)*>  => {
+        let mut v = v;
+        v.insert(0, e);
+        v
+    }
+};
+
+PuncuatedOne<T>: Vec<T> = {
+    <e:T> <v:("." <T>)*>  => {
+        let mut v = v;
+        v.insert(0, e);
+        v
+    }
+};
+
+extern {
+    type Location = usize;
+    type Error = CairoLexerError;
+
+    enum CairoToken<'input> {
+        identifier => CairoToken::Identifier(<&'input str>),
+        string => CairoToken::StringLiteral(<&'input str>),
+        shortstring => CairoToken::ShortStringLiteral(<&'input str>),
+        number => CairoToken::Number(<&'input str>),
+        hexnumber => CairoToken::HexNumber(<&'input str>),
+        comment => CairoToken::Comment(<&'input str>),
+        hint => CairoToken::Hint(<&'input str>),
+        newline => CairoToken::Newline,
+
+        "*" => CairoToken::Star,
+        "**" => CairoToken::DoubleStar,
+        "{" => CairoToken::OpenCurlyBrace,
+        "}" => CairoToken::CloseCurlyBrace,
+        "(" => CairoToken::OpenParenthesis,
+        ")" => CairoToken::CloseParenthesis,
+        "[" => CairoToken::OpenBracket,
+        "]" => CairoToken::CloseBracket,
+        "_" => CairoToken::Underscore,
+        ";" => CairoToken::Semicolon,
+        "!" => CairoToken::Not,
+        "!=" => CairoToken::Neq,
+        "." => CairoToken::Point,
+        "," => CairoToken::Comma,
+        "@" => CairoToken::At,
+
+        "&" => CairoToken::And,
+        "+" => CairoToken::Add,
+        "+=" => CairoToken::AddAssign,
+        "++" => CairoToken::DoublePlus,
+        "-" => CairoToken::Sub,
+        "/" => CairoToken::Div,
+        "=" => CairoToken::Assign,
+        "==" => CairoToken::Equals,
+        ":" => CairoToken::Colon,
+        "cast" => CairoToken::Cast,
+        "const" => CairoToken::Const,
+        "let" => CairoToken::Let,
+        "return" => CairoToken::Return,
+        "ret" => CairoToken::Ret,
+        "func" => CairoToken::Func,
+        "end" => CairoToken::End,
+        "local" => CairoToken::Local,
+        "alloc_locals" => CairoToken::AllocLocals,
+        "struct" => CairoToken::Struct,
+        "namespace" => CairoToken::Namespace,
+        "member" => CairoToken::Member,
+        "felt" => CairoToken::Felt,
+        "from" => CairoToken::From,
+        "import" => CairoToken::Import,
+        "if" => CairoToken::If,
+        "else" => CairoToken::Else,
+        "assert" => CairoToken::Assert,
+        "static_assert" => CairoToken::StaticAssert,
+        "->" => CairoToken::Arrow,
+        "%builtins" => CairoToken::Builtins,
+        "%lang" => CairoToken::Lang,
+        "ap" => CairoToken::Ap,
+        "fp" => CairoToken::Fp,
+        "as" => CairoToken::As,
+        "tempvar" => CairoToken::Tempvar,
+        "jmp" => CairoToken::Jmp,
+        "abs" => CairoToken::Abs,
+        "rel" => CairoToken::Rel,
+        "with_attr" => CairoToken::WithAttr,
+        "with" => CairoToken::With,
+        "call" => CairoToken::Call,
+        "nondet" => CairoToken::Nondet,
+    }
+}
