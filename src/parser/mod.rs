@@ -7,8 +7,7 @@ lalrpop_mod!(pub cairo_grammar, "/parser/cairo_grammar.rs");
 #[cfg(test)]
 mod tests {
 
-    use crate::ast::CairoFile;
-    use crate::lexer::*;
+    use crate::{ast::CairoFile, lexer::*};
     use std::path::Path;
 
     fn tokenize(s: &str) -> Vec<Result<(usize, CairoToken, usize), CairoLexerError>> {

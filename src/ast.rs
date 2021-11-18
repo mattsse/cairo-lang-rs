@@ -1,9 +1,13 @@
 //! AST for Cairo-lang based on https://cairo-lang.org/docs/reference/syntax.html
-use crate::error::CairoError;
-use crate::lexer::{CairoLexer, CairoLexerError};
-use crate::parser;
-use std::fmt::{self, Write};
-use std::path::Path;
+use crate::{
+    error::CairoError,
+    lexer::{CairoLexer, CairoLexerError},
+    parser,
+};
+use std::{
+    fmt::{self, Write},
+    path::Path,
+};
 
 ///  start offset, end offset (in bytes)
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
