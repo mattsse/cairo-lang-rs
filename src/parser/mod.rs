@@ -47,8 +47,9 @@ mod tests {
         };
     }
 
+    /// Ensure we can parse all common cairo files from cairo-lang
     #[test]
-    fn parse_common() {
+    fn parse_common_cairo_files() {
         for file in
             std::fs::read_dir(Path::new(&env!("CARGO_MANIFEST_DIR")).join("common")).unwrap()
         {
