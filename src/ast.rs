@@ -41,7 +41,7 @@ impl CairoFile {
 
 impl fmt::Display for CairoFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_instructions(&self.0, f)
+        fmt_trailing_newline(&self.0, f)
     }
 }
 
@@ -97,18 +97,70 @@ impl fmt::Display for FunctionImport {
     }
 }
 
+/// Cario lang decorators
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Decorator {
+    View,
+    External,
+    Constructor,
+    StorageVar,
+    Other(String),
+}
+
+impl Decorator {
+    pub fn is_view(&self) -> bool {
+        matches!(self, Decorator::View)
+    }
+    pub fn is_external(&self) -> bool {
+        matches!(self, Decorator::External)
+    }
+    pub fn is_constructor(&self) -> bool {
+        matches!(self, Decorator::Constructor)
+    }
+    pub fn is_storage_var(&self) -> bool {
+        matches!(self, Decorator::StorageVar)
+    }
+    pub fn is_other(&self) -> bool {
+        matches!(self, Decorator::Other(_))
+    }
+}
+
+impl<T: Into<String>> From<T> for Decorator {
+    fn from(s: T) -> Self {
+        let s = s.into();
+        match s.as_str() {
+            "view" => Decorator::View,
+            "external" => Decorator::External,
+            "constructor" => Decorator::Constructor,
+            "storage_var" => Decorator::StorageVar,
+            _ => Decorator::Other(s),
+        }
+    }
+}
+
+impl fmt::Display for Decorator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char('@')?;
+        match self {
+            Decorator::View => f.write_str("view"),
+            Decorator::External => f.write_str("external"),
+            Decorator::Constructor => f.write_str("constructor"),
+            Decorator::StorageVar => f.write_str("storage_var"),
+            Decorator::Other(s) => s.fmt(f),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Struct {
-    pub decorators: Vec<String>,
+    pub decorators: Vec<Decorator>,
     pub name: String,
     pub members: Vec<Pair>,
 }
 
 impl fmt::Display for Struct {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for s in &self.decorators {
-            write!(f, "@{} ", s)?;
-        }
+        fmt_trailing_newline(&self.decorators, f)?;
         writeln!(f, "struct {}:", self.name)?;
         for mem in &self.members {
             writeln!(f, "    member {}", mem)?;
@@ -119,18 +171,16 @@ impl fmt::Display for Struct {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Namespace {
-    pub decorators: Vec<String>,
+    pub decorators: Vec<Decorator>,
     pub name: String,
     pub instructions: Vec<Instruction>,
 }
 
 impl fmt::Display for Namespace {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for s in &self.decorators {
-            write!(f, "@{} ", s)?;
-        }
+        fmt_trailing_newline(&self.decorators, f)?;
         writeln!(f, "namespace {}:", self.name)?;
-        fmt_instructions(&self.instructions, f)?;
+        fmt_trailing_newline(&self.instructions, f)?;
         f.write_str("end")
     }
 }
@@ -572,7 +622,7 @@ impl fmt::Display for WithStatement {
         f.write_str("with ")?;
         comma_separated(&self.ids, f)?;
         f.write_str(" :\n")?;
-        fmt_instructions(&self.instructions, f)?;
+        fmt_trailing_newline(&self.instructions, f)?;
         f.write_str("end")
     }
 }
@@ -599,7 +649,7 @@ impl fmt::Display for WithAttrStatement {
             f.write_char(')')?;
         }
         f.write_str(" :\n")?;
-        fmt_instructions(&self.instructions, f)?;
+        fmt_trailing_newline(&self.instructions, f)?;
         f.write_str("end")
     }
 }
@@ -625,7 +675,7 @@ impl fmt::Display for RefBinding {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDef {
-    pub decorators: Vec<String>,
+    pub decorators: Vec<Decorator>,
     pub name: String,
     pub implicit_args: Option<Vec<TypedIdentifier>>,
     pub input_args: Vec<TypedIdentifier>,
@@ -635,9 +685,7 @@ pub struct FunctionDef {
 
 impl fmt::Display for FunctionDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for s in &self.decorators {
-            write!(f, "@{} ", s)?;
-        }
+        fmt_trailing_newline(&self.decorators, f)?;
         write!(f, "func {}", self.name)?;
         if let Some(ref args) = self.implicit_args {
             f.write_char('{')?;
@@ -652,7 +700,7 @@ impl fmt::Display for FunctionDef {
             comma_separated(args, f)?;
             f.write_char(')')?;
         }
-        fmt_instructions(&self.instructions, f)?;
+        fmt_trailing_newline(&self.instructions, f)?;
         f.write_str("end")
     }
 }
@@ -700,20 +748,25 @@ pub struct IfStatement {
 impl fmt::Display for IfStatement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "if {} :", self.cond)?;
-        fmt_instructions(&self.instructions, f)?;
+        fmt_trailing_newline(&self.instructions, f)?;
         if let Some(ref el) = self.else_branch {
             writeln!(f, "else:")?;
-            fmt_instructions(el, f)?;
+            fmt_trailing_newline(el, f)?;
         }
         f.write_str("end")
     }
 }
 
-fn fmt_instructions(i: &[Instruction], f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if i.is_empty() {
+fn fmt_trailing_newline<I, D>(items: I, f: &mut fmt::Formatter<'_>) -> fmt::Result
+where
+    I: IntoIterator<Item = D>,
+    D: fmt::Display,
+{
+    let mut iter = items.into_iter().peekable();
+    if iter.peek().is_none() {
         return Ok(());
     }
-    separated(i, f, '\n')?;
+    separated(iter, f, '\n')?;
     f.write_char('\n')
 }
 

@@ -285,10 +285,10 @@ ExprAssignment: ExprAssignment = {
 
 // ------------- Utils ------------------
 
-Decorator: IDStr = {
- "@" <s:Id> newline* => s
+Decorator: Decorator = {
+ "@" <s:Id> newline* => Decorator::from(s)
 }
-DecoratorList: Vec<IDStr> = {
+DecoratorList: Vec<Decorator> = {
   <s:Decorator*> => s
 }
 
