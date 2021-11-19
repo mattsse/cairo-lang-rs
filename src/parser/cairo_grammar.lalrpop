@@ -1,5 +1,5 @@
-use crate::ast::*;
-use crate::lexer::{CairoLexerError, CairoToken};
+use crate::parser::ast::*;
+use crate::parser::lexer::{CairoToken, CairoLexerError};
 use std::borrow::Cow;
 
 grammar<'input>(input: &'input str);

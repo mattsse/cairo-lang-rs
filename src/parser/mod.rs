@@ -2,12 +2,16 @@
 #![allow(clippy::all)]
 use lalrpop_util::lalrpop_mod;
 
+pub mod ast;
+pub mod error;
+pub mod lexer;
+
 lalrpop_mod!(pub cairo_grammar, "/parser/cairo_grammar.rs");
 
 #[cfg(test)]
 mod tests {
 
-    use crate::{ast::CairoFile, lexer::*};
+    use crate::{parser::ast::*, parser::lexer::*};
     use std::path::Path;
 
     fn tokenize(s: &str) -> Vec<Result<(usize, CairoToken, usize), CairoLexerError>> {

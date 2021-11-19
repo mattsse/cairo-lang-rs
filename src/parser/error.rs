@@ -1,4 +1,4 @@
-use crate::lexer::CairoLexerError;
+use crate::parser::lexer::CairoLexerError;
 use std::io;
 use thiserror::Error;
 

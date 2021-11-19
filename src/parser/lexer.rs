@@ -1,4 +1,4 @@
-use crate::ast::Loc;
+use crate::parser::ast::Loc;
 
 use lalrpop_util::ParseError;
 use std::{iter::Peekable, str::CharIndices};
