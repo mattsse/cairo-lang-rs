@@ -7,12 +7,12 @@ grammar<'input>(input: &'input str);
 // ----------- Imports ---------------
 
 ImportDirective: ImportDirective = {
-    "from" <segments:Identifier> <functions:FunctionImport> => ImportDirective {segments, functions},
+    <l:@L> "from" <segments:Identifier> <functions:FunctionImport> <r:@L> => ImportDirective {loc: Loc(l, r), segments, functions},
 };
 
 Directive: Directive = {
-     "%builtins" <builtin:Builtin+> => Directive::Builtins(<>),
-     "%lang" <name:Identifier> => Directive::Lang(<>),
+     <l:@L> "%builtins" <builtin:Builtin+> <r:@L> => Directive::Builtins(Loc(l,r), builtin),
+     <l:@L> "%lang" <name:Identifier> <r:@L> => Directive::Lang(Loc(l,r), name),
 }
 
 Rename: String = {
@@ -24,8 +24,8 @@ AliasedId: AliasedId = {
 }
 
 FunctionImport: FunctionImport = {
-    "import" <imports:("("notes <Comma<AliasedId>> ")")> => FunctionImport::Parantheses(imports),
-    "import"  <imports:(notes <CommaOne<AliasedId>>)> => FunctionImport::Direct(imports),
+   <l:@L> "import" <imports:("("notes <Comma<AliasedId>> ")")> <r:@L> => FunctionImport::Parantheses(Loc(l,r), imports),
+    <l:@L> "import"  <imports:(notes <CommaOne<AliasedId>>)> <r:@L> => FunctionImport::Direct(Loc(l,r), imports),
 }
 
 // ------------- Types ------------------

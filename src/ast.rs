@@ -64,6 +64,7 @@ impl fmt::Display for AliasedId {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDirective {
+    pub loc: Loc,
     /// the segments of the module name like `starkware.cairo.common.math`
     pub segments: Identifier,
     /// function names after the import
@@ -79,16 +80,16 @@ impl fmt::Display for ImportDirective {
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FunctionImport {
-    Direct(Vec<AliasedId>),
-    Parantheses(Vec<AliasedId>),
+    Direct(Loc, Vec<AliasedId>),
+    Parantheses(Loc, Vec<AliasedId>),
 }
 
 impl fmt::Display for FunctionImport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("import ")?;
         match self {
-            FunctionImport::Direct(imports) => comma_separated(imports, f),
-            FunctionImport::Parantheses(imports) => {
+            FunctionImport::Direct(_, imports) => comma_separated(imports, f),
+            FunctionImport::Parantheses(_, imports) => {
                 f.write_char('(')?;
                 comma_separated(imports, f)?;
                 f.write_char(')')
@@ -571,18 +572,18 @@ impl fmt::Display for Instruction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Directive {
-    Lang(Identifier),
-    Builtins(Vec<Builtin>),
+    Lang(Loc, Identifier),
+    Builtins(Loc, Vec<Builtin>),
 }
 
 impl fmt::Display for Directive {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Directive::Lang(lang) => {
+            Directive::Lang(_, lang) => {
                 f.write_str("%lang ")?;
                 puncuated(lang, f)
             }
-            Directive::Builtins(b) => {
+            Directive::Builtins(_, b) => {
                 f.write_str("%builtins ")?;
                 separated(b, f, ' ')
             }
