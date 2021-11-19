@@ -97,7 +97,54 @@ impl fmt::Display for FunctionImport {
     }
 }
 
-/// Cario lang decorators
+/// Cairo lang builtins
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Builtin {
+    Pedersen,
+    RangeCheck,
+    Ecdsa,
+    Other(String),
+}
+
+impl Builtin {
+    pub fn is_pedersen(&self) -> bool {
+        matches!(self, Builtin::Pedersen)
+    }
+    pub fn is_range_check(&self) -> bool {
+        matches!(self, Builtin::RangeCheck)
+    }
+    pub fn is_ecdsa(&self) -> bool {
+        matches!(self, Builtin::Ecdsa)
+    }
+    pub fn is_other(&self) -> bool {
+        matches!(self, Builtin::Other(_))
+    }
+}
+
+impl<T: Into<String>> From<T> for Builtin {
+    fn from(s: T) -> Self {
+        let s = s.into();
+        match s.as_str() {
+            "pedersen" => Builtin::Pedersen,
+            "range_check" => Builtin::RangeCheck,
+            "ecdsa" => Builtin::Ecdsa,
+            _ => Builtin::Other(s),
+        }
+    }
+}
+
+impl fmt::Display for Builtin {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Builtin::Pedersen => f.write_str("pedersen"),
+            Builtin::RangeCheck => f.write_str("range_check"),
+            Builtin::Ecdsa => f.write_str("ecdsa"),
+            Builtin::Other(s) => s.fmt(f),
+        }
+    }
+}
+
+/// Cairo lang decorators
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Decorator {
     View,
@@ -525,7 +572,7 @@ impl fmt::Display for Instruction {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Directive {
     Lang(Identifier),
-    Builtins(Vec<String>),
+    Builtins(Vec<Builtin>),
 }
 
 impl fmt::Display for Directive {

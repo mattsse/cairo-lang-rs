@@ -70,6 +70,6 @@ mod tests {
 
     #[test]
     fn parse_testdata_cairo_files() {
-        parse_files_in_folder("test-data")
+        parse_files_in_folder("test-data/cairo-files")
     }
 }

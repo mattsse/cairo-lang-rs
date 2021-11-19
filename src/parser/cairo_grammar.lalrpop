@@ -11,7 +11,7 @@ ImportDirective: ImportDirective = {
 };
 
 Directive: Directive = {
-     "%builtins" <builtin:Id+> => Directive::Builtins(<>),
+     "%builtins" <builtin:Builtin+> => Directive::Builtins(<>),
      "%lang" <name:Identifier> => Directive::Lang(<>),
 }
 
@@ -304,6 +304,10 @@ String: String = {
 Id: IDStr = {
     <s:identifier> => s.to_string(),
 };
+
+Builtin: Builtin = {
+ <s:Id> => Builtin::from(s)
+}
 
 Identifier: Identifier = {
     <s:PuncuatedOne<identifier>> => s.into_iter().map(str::to_string).collect::<Vec<_>>(),
