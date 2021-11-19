@@ -26,5 +26,5 @@ Licensed under either of these:
   https://www.apache.org/licenses/LICENSE-2.0)
 * MIT license ([LICENSE-MIT](LICENSE-MIT) or
   https://opensource.org/licenses/MIT)
-* All *.cairo files in [./common/](./common) are taken from [starkware-libs/cairo-lang](https://github.com/starkware-libs/cairo-lang) and are thus licensed under the [Cairo Toolchain License](https://raw.githubusercontent.com/starkware-libs/cairo-lang/master/LICENSE.txt)
+* All *.cairo files in [./common/](./common) and [./test-data/](./test-data) are taken from [starkware-libs/cairo-lang](https://github.com/starkware-libs/cairo-lang) and are thus licensed under the [Cairo Toolchain License](https://raw.githubusercontent.com/starkware-libs/cairo-lang/master/LICENSE.txt)
 
