@@ -487,6 +487,7 @@ pub enum Instruction {
     Ret,
     ApAddAssign(Expr),
     ApAdd(Box<Instruction>),
+    DataWord(Expr),
 }
 
 impl Instruction {
@@ -565,6 +566,9 @@ impl fmt::Display for Instruction {
             }
             Instruction::ApAdd(ins) => {
                 write!(f, "{}; ap ++", ins)
+            }
+            Instruction::DataWord(ins) => {
+                write!(f, "dw {}", ins)
             }
         }
     }

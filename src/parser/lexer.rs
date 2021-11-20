@@ -132,6 +132,7 @@ pub enum CairoToken<'input> {
     WithAttr,
     Call,
     Nondet,
+    Dw,
 }
 
 pub(crate) struct CairoLexer<'input> {
@@ -264,6 +265,7 @@ impl<'input> CairoLexer<'input> {
             "with_attr" => Some(CairoToken::WithAttr),
             "call" => Some(CairoToken::Call),
             "nondet" => Some(CairoToken::Nondet),
+            "dw" => Some(CairoToken::Dw),
             _ => None,
         }
     }

@@ -189,6 +189,7 @@ InstructionBody: Instruction = {
  Jmp => Instruction::Jmp(<>),
  "ret" => Instruction::Ret,
  "ap" "+=" <x:Expr> => Instruction::ApAddAssign(<>),
+ "dw" <x:Expr> => Instruction::DataWord(<>),
 }
 
 WithStatement: WithStatement = {
@@ -432,5 +433,6 @@ extern {
         "with" => CairoToken::With,
         "call" => CairoToken::Call,
         "nondet" => CairoToken::Nondet,
+        "dw" => CairoToken::Dw,
     }
 }
