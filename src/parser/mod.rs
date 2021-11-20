@@ -1,12 +1,14 @@
-#![allow(dead_code)]
-#![allow(clippy::all)]
-use lalrpop_util::lalrpop_mod;
-
 pub mod ast;
 pub mod error;
 pub mod lexer;
 
-lalrpop_mod!(pub cairo_grammar, "/parser/cairo_grammar.rs");
+pub use grammar::*;
+
+mod grammar {
+    #![allow(dead_code)]
+    #![allow(clippy::all)]
+    lalrpop_util::lalrpop_mod!(pub cairo_grammar, "/parser/cairo_grammar.rs");
+}
 
 #[cfg(test)]
 mod tests {
