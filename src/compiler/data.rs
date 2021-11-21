@@ -1,11 +1,13 @@
+use crate::compiler::program::Program;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Contract {
     pub abi: Vec<Abi>,
     pub entry_points_by_type: EntryPointsByType,
-    pub program: Programm,
+    pub program: Program,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -42,22 +44,10 @@ pub struct External {
     pub selector: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Programm {
-    pub builtins: Vec<String>,
-    pub data: Vec<String>,
-    pub debug_info: DebugInfo,
-    pub hints: BTreeMap<String, Vec<ProgramHint>>,
-    pub identifiers: BTreeMap<String, serde_json::Value>,
-    pub main_scope: String,
-    pub prime: String,
-    pub reference_manager: serde_json::Value,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct DebugInfo {
-    pub file_contents: BTreeMap<String, String>,
-    pub instruction_locations: HashMap<String, InstructionLocation>,
+    pub file_contents: BTreeMap<PathBuf, String>,
+    pub instruction_locations: BTreeMap<String, InstructionLocation>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -71,7 +61,7 @@ pub struct InstructionLocation {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
-    pub reference_ids: HashMap<String, i64>,
+    pub reference_ids: BTreeMap<String, i64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
