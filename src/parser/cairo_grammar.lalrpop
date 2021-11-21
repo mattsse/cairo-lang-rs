@@ -112,7 +112,7 @@ Jmp: Jmp = {
 }
 
 IfStatement: IfStatement = {
-   "if" <cond:BoolExpr> ":" newline <instructions:CodeBlock> <else_branch:ElseBranch?> "end" => IfStatement{cond,instructions, else_branch}
+   "if" <cond:BoolExpr> ":" newline <instructions:CodeBlock> <else_branch:ElseBranch?> "end" => IfStatement{cond,instructions, else_branch, label_neq: None, label_end: None}
 }
 
 ElseBranch: Vec<Instruction> = {

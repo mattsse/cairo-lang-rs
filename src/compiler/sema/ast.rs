@@ -21,6 +21,10 @@ pub trait Visitor {
     fn visit_function(&mut self, _import: &mut FunctionDef) -> VResult {
         Ok(())
     }
+
+    fn visit_if(&mut self, _: &mut IfStatement) -> VResult {
+        Ok(())
+    }
 }
 
 /// A trait for AST nodes that get called by their parent nodes with the current compiler pass

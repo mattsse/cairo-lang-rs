@@ -274,9 +274,7 @@ impl<'input> CairoLexer<'input> {
                     loop {
                         match self.chars.peek() {
                             Some((_, '\r')) | Some((_, '\n')) => break,
-                            None => {
-                                return None
-                            }
+                            None => return None,
                             _ => {
                                 self.chars.next();
                             }
@@ -454,9 +452,7 @@ impl<'input> CairoLexer<'input> {
                         self.input[start..end].to_owned(),
                     )))
                 }
-                None => {
-                    return None
-                }
+                None => return None,
             }
         }
     }

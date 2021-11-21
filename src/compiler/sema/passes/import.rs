@@ -16,12 +16,12 @@ use std::{
 };
 
 #[derive(Debug, Default)]
-pub struct ModuleCollector {
+pub struct ModuleCollectorPass {
     additional_modules: Vec<String>,
     reader: ModuleReader,
 }
 
-impl ModuleCollector {
+impl ModuleCollectorPass {
     pub fn new(reader: ModuleReader) -> Self {
         Self::with_modules(reader, Default::default())
     }
@@ -31,7 +31,7 @@ impl ModuleCollector {
     }
 }
 
-impl Pass for ModuleCollector {
+impl Pass for ModuleCollectorPass {
     fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
         log::trace!("starting pass: ModuleCollector");
         let mut visited = HashSet::new();

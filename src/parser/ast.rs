@@ -539,7 +539,9 @@ impl Visitable for Instruction {
             Instruction::StaticAssert(_, _) => {}
             Instruction::Return(_) => {}
             Instruction::ReturnFunctionCall(_) => {}
-            Instruction::If(_) => {}
+            Instruction::If(i) => {
+                i.visit(v)?;
+            }
             Instruction::Label(_) => {}
             Instruction::Function(i) => {
                 i.visit(v)?;
@@ -878,6 +880,19 @@ pub struct IfStatement {
     pub cond: BoolExpr,
     pub instructions: Vec<Instruction>,
     pub else_branch: Option<Vec<Instruction>>,
+    pub label_neq: Option<String>,
+    pub label_end: Option<String>,
+}
+
+impl Visitable for IfStatement {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_if(self);
+        self.instructions.visit(v)?;
+        if let Some(e) = self.else_branch.as_mut() {
+            e.visit(v)?;
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Display for IfStatement {

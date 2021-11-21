@@ -5,6 +5,7 @@ use ethers::core::k256::U256;
 use std::fmt;
 
 mod import;
+mod label;
 
 /// A manager for running passes
 #[derive(Debug)]
