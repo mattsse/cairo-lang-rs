@@ -1,7 +1,8 @@
 use crate::compiler::sema::PreprocessedProgram;
-use crate::compiler::ModuleReader;
+
+use crate::error::Result;
 use ethers::core::k256::U256;
-use std::fmt::Debug;
+use std::fmt;
 
 mod import;
 
@@ -16,10 +17,11 @@ impl PassManager {
         todo!()
     }
 
-    pub fn run_on(&mut self, prg: &mut PreprocessedProgram) {
+    pub fn run_on(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
         for t in self.passes.iter_mut() {
-            t.run(prg);
+            t.run(prg)?;
         }
+        Ok(())
     }
 }
 
@@ -35,12 +37,6 @@ impl From<U256> for PassManager {
     }
 }
 
-pub trait Pass: Debug {
-    fn run(&mut self, prg: &mut PreprocessedProgram);
-}
-
-#[derive(Debug)]
-pub struct ModuleCollector {
-    additional_modules: Vec<String>,
-    reader: ModuleReader,
+pub trait Pass: fmt::Debug {
+    fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()>;
 }

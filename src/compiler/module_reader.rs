@@ -36,15 +36,6 @@ impl ModuleReader {
             .map(|p| p.join(&file_name))
             .find(|path| path.exists())
     }
-
-    /// Finds the module's file and read its content
-    pub fn read(&self, module: impl AsRef<str>) -> Result<(String, PathBuf)> {
-        let module = module.as_ref();
-        let file = self
-            .find(module)
-            .ok_or_else(|| CairoError::ModuleNotFound(module.to_string()))?;
-        Ok(fs::read_to_string(&file).map(|c| (c, file))?)
-    }
 }
 
 impl Default for ModuleReader {
@@ -55,5 +46,19 @@ impl Default for ModuleReader {
                 .unwrap_or_default(),
             resolved_modules: Default::default(),
         }
+    }
+}
+
+pub(crate) trait CodeReader {
+    fn read(&self, module: &str) -> Result<(String, PathBuf)>;
+}
+
+impl<'a> CodeReader for &'a ModuleReader {
+    /// Finds the module's file and read its content
+    fn read(&self, module: &str) -> Result<(String, PathBuf)> {
+        let file = self
+            .find(module)
+            .ok_or_else(|| CairoError::ModuleNotFound(module.to_string()))?;
+        Ok(fs::read_to_string(&file).map(|c| (c, file))?)
     }
 }

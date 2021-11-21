@@ -1,6 +1,7 @@
 pub use crate::compiler::data::DebugInfo;
 pub use crate::compiler::module_reader::ModuleReader;
 use crate::compiler::sema::{PreprocessedProgram, ScopedName};
+use crate::error::Result;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
@@ -29,7 +30,7 @@ pub struct CairoCompiler {
 }
 
 impl CairoCompiler {
-    pub fn compile(&self) -> eyre::Result<Program> {
+    pub fn compile(&self) -> Result<Program> {
         todo!()
     }
 }
@@ -40,9 +41,9 @@ pub fn compile_cairo<I, P>(
     _debug_info: bool,
     add_start: bool,
     pass_manager: impl Into<PassManager>,
-    module_reader: &mut ModuleReader,
+    _module_reader: &mut ModuleReader,
     main_scope: Option<ScopedName>,
-) -> eyre::Result<Program>
+) -> Result<Program>
 where
     I: IntoIterator<Item = P>,
     P: Into<PathBuf>,
@@ -66,10 +67,10 @@ where
     let main_scope = main_scope.unwrap_or_else(ScopedName::main_scope);
 
     // preprocess the cairo program
-    let mut prg = PreprocessedProgram::new(main_scope).preprocess(codes, module_reader)?;
+    let mut prg = PreprocessedProgram::new(main_scope, codes);
 
     // execute all compiler passes
-    pass_manager.run_on(&mut prg);
+    pass_manager.run_on(&mut prg)?;
     // assemble the cairo program
 
     todo!()

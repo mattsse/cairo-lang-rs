@@ -1,20 +1,100 @@
+use crate::compiler::module_reader::CodeReader;
 use crate::compiler::sema::ast::Visitor;
+use crate::compiler::sema::passes::Pass;
+use crate::compiler::sema::{CairoContent, CairoModule, PreprocessedProgram, ScopedName};
 use crate::compiler::{ModuleReader, VResult, Visitable};
 use crate::error::{CairoError, Result};
 use crate::parser::ast::{Identifier, ImportDirective};
 use crate::CairoFile;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+
+#[derive(Debug, Default)]
+pub struct ModuleCollector {
+    additional_modules: Vec<String>,
+    reader: ModuleReader,
+}
+
+impl ModuleCollector {
+    pub fn new(reader: ModuleReader) -> Self {
+        Self::with_modules(reader, Default::default())
+    }
+
+    pub fn with_modules(reader: ModuleReader, additional_modules: Vec<String>) -> Self {
+        Self {
+            reader,
+            additional_modules,
+        }
+    }
+}
+
+impl Pass for ModuleCollector {
+    fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
+        log::trace!("starting pass: ModuleCollector");
+        let mut visited = HashSet::new();
+
+        // resolve additional modules
+        for module in &self.additional_modules {
+            let mut collector = ImportCollector::new(&self.reader);
+            collector.collect_imports(module)?;
+            for (module_name, cairo_file) in collector.collected_files {
+                if visited.insert(module_name.clone()) {
+                    let scope = ScopedName::from_str(module_name);
+                    prg.modules.push(CairoModule::new(scope, cairo_file));
+                }
+            }
+        }
+
+        // resolve source files
+        for content in &prg.codes {
+            let mut collector = ImportCollector::new(InputCodeReader {
+                reader: &self.reader,
+                content,
+            });
+            let file_name = content.name();
+            collector.collect_imports(file_name.clone())?;
+            for (module_name, cairo_file) in collector.collected_files {
+                let scope = if module_name == file_name {
+                    prg.main_scope.clone()
+                } else {
+                    if !visited.insert(module_name.clone()) {
+                        continue;
+                    }
+                    ScopedName::from_str(module_name)
+                };
+                prg.modules.push(CairoModule::new(scope, cairo_file));
+            }
+        }
+
+        Ok(())
+    }
+}
+
+struct InputCodeReader<'a> {
+    reader: &'a ModuleReader,
+    content: &'a CairoContent,
+}
+
+impl<'a> CodeReader for InputCodeReader<'a> {
+    fn read(&self, module: &str) -> Result<(String, PathBuf)> {
+        if module == self.content.name() {
+            Ok((self.content.code.clone(), self.content.path.clone()))
+        } else {
+            self.reader.read(module)
+        }
+    }
+}
 
 /// A helper visitor type that can collect all imports of a given module
-pub struct ImportCollector<'a> {
-    reader: &'a ModuleReader,
+struct ImportCollector<T> {
+    reader: T,
     current_ancestors: Vec<String>,
     collected_files: HashMap<String, CairoFile>,
     langs: HashMap<String, Option<String>>,
 }
 
-impl<'a> ImportCollector<'a> {
-    pub fn new(reader: &'a ModuleReader) -> Self {
+impl<T: CodeReader> ImportCollector<T> {
+    pub fn new(reader: T) -> Self {
         Self {
             reader,
             current_ancestors: Default::default(),
