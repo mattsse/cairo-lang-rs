@@ -1,8 +1,9 @@
 use crate::compiler::constants::{CAIRO_FILE_EXTENSION, LIBS_DIR_ENVVAR};
 use crate::compiler::sema::ScopedName;
+use crate::error::{CairoError, Result};
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Helper types that's used to read module files based their names
 ///
@@ -37,9 +38,12 @@ impl ModuleReader {
     }
 
     /// Finds the module's file and read its content
-    pub fn read(&self, module: impl AsRef<str>) -> Option<(String, PathBuf)> {
-        let file = self.find(module)?;
-        fs::read_to_string(&file).map(|c| (c, file)).ok()
+    pub fn read(&self, module: impl AsRef<str>) -> Result<(String, PathBuf)> {
+        let module = module.as_ref();
+        let file = self
+            .find(module)
+            .ok_or_else(|| CairoError::ModuleNotFound(module.to_string()))?;
+        Ok(fs::read_to_string(&file).map(|c| (c, file))?)
     }
 }
 

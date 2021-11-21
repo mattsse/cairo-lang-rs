@@ -67,19 +67,14 @@ mod tests {
         }
     }
 
-    // /// Ensure we can parse all common cairo files from cairo-lang
-    // #[test]
-    // fn parse_common_cairo_files() {
-    //     parse_files_in_folder("common")
-    // }
-    //
-    // #[test]
-    // fn parse_testdata_cairo_files() {
-    //     parse_files_in_folder("test-data/cairo-files")
-    // }
+    /// Ensure we can parse all common cairo files from cairo-lang
+    #[test]
+    fn parse_common_cairo_files() {
+        parse_files_in_folder("common")
+    }
 
     #[test]
-    fn was() {
-        assert!(true);
+    fn parse_testdata_cairo_files() {
+        parse_files_in_folder("test-data/cairo-files")
     }
 }

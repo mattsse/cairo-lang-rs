@@ -1,4 +1,3 @@
-use crate::compiler::sema::ast::Visitor;
 use crate::compiler::sema::PreprocessedProgram;
 use crate::compiler::ModuleReader;
 use ethers::core::k256::U256;

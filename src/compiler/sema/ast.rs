@@ -1,8 +1,23 @@
+use crate::error::Result;
+use crate::parser::ast::*;
+
 /// the general purpose result type used in passes
-type VResult = eyre::Result<()>;
+pub type VResult = Result<()>;
 
 /// A trait intended to be implemented by compiler passes that make it easier to traverse the AST and only do operations on specific nodes.
-pub trait Visitor {}
+pub trait Visitor {
+    fn visit_lang(&mut self, _id: &mut Identifier) -> VResult {
+        Ok(())
+    }
+
+    fn visit_import(&mut self, _import: &mut ImportDirective) -> VResult {
+        Ok(())
+    }
+
+    fn visit_function(&mut self, _import: &mut FunctionDef) -> VResult {
+        Ok(())
+    }
+}
 
 /// A trait for AST nodes that get called by their parent nodes with the current compiler pass `Vistor`
 pub trait Visitable {

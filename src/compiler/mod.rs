@@ -14,6 +14,7 @@ mod program;
 pub use program::Program;
 mod sema;
 use crate::compiler::constants::{START_CODE, START_FILE_NAME};
+pub use sema::ast::{VResult, Visitable, Visitor};
 pub use sema::passes::PassManager;
 
 /// Utility struct to compile a list of cairo files
@@ -36,7 +37,7 @@ impl CairoCompiler {
 /// Compiles a list of cairo files
 pub fn compile_cairo<I, P>(
     files: I,
-    debug_info: bool,
+    _debug_info: bool,
     add_start: bool,
     pass_manager: impl Into<PassManager>,
     module_reader: &mut ModuleReader,

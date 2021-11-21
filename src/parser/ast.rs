@@ -1,4 +1,5 @@
 //! AST for Cairo-lang based on https://cairo-lang.org/docs/reference/syntax.html
+use crate::compiler::{VResult, Visitable, Visitor};
 use crate::error::CairoError;
 use crate::parser::{
     self,
@@ -39,6 +40,18 @@ impl CairoFile {
     }
 }
 
+impl AsRef<Vec<Instruction>> for CairoFile {
+    fn as_ref(&self) -> &Vec<Instruction> {
+        &self.0
+    }
+}
+
+impl Visitable for CairoFile {
+    fn visit(&mut self, _v: &mut dyn Visitor) -> VResult {
+        Ok(())
+    }
+}
+
 impl fmt::Display for CairoFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt_trailing_newline(&self.0, f)
@@ -65,16 +78,22 @@ impl fmt::Display for AliasedId {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDirective {
     pub loc: Loc,
-    /// the segments of the module name like `starkware.cairo.common.math`
-    pub segments: Identifier,
+    /// the path segments of the module name like `starkware.cairo.common.math`
+    pub path: Identifier,
     /// function names after the import
     pub functions: FunctionImport,
+}
+
+impl ImportDirective {
+    pub fn name(&self) -> String {
+        self.path.join(".")
+    }
 }
 
 impl fmt::Display for ImportDirective {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("from ")?;
-        puncuated(&self.segments, f)?;
+        puncuated(&self.path, f)?;
         write!(f, " {}", self.functions)
     }
 }

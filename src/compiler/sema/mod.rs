@@ -1,10 +1,9 @@
 use crate::compiler::module_reader::ModuleReader;
 use crate::parser::ast::{Builtin, Identifier};
 use crate::CairoFile;
-use std::io::BufRead;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-mod ast;
+pub mod ast;
 pub mod passes;
 
 /// When assembling a cairo file, this holds all the resolved info.
@@ -18,7 +17,7 @@ pub struct PreprocessedProgram {
 
 impl PreprocessedProgram {
     /// Preprocesses a list of cairo files
-    pub fn preprocess<I>(mut self, codes: I, module_reader: &mut ModuleReader) -> eyre::Result<Self>
+    pub fn preprocess<I>(self, _codes: I, _module_reader: &mut ModuleReader) -> eyre::Result<Self>
     where
         I: IntoIterator<Item = (String, PathBuf)>,
     {

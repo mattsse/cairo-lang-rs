@@ -7,7 +7,7 @@ grammar<'input>(input: &'input str);
 // ----------- Imports ---------------
 
 ImportDirective: ImportDirective = {
-    <l:@L> "from" <segments:Identifier> <functions:FunctionImport> <r:@L> => ImportDirective {loc: Loc(l, r), segments, functions},
+    <l:@L> "from" <path:Identifier> <functions:FunctionImport> <r:@L> => ImportDirective {loc: Loc(l, r), path, functions},
 };
 
 Directive: Directive = {
