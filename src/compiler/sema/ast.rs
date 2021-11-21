@@ -10,6 +10,30 @@ pub trait Visitor {
         Ok(())
     }
 
+    fn visit_const_def(&mut self, _: &mut ConstantDef) -> VResult {
+        Ok(())
+    }
+
+    fn visit_label(&mut self, _: &mut Identifier) -> VResult {
+        Ok(())
+    }
+
+    fn visit_typed_identifier(&mut self, _: &mut TypedIdentifier) -> VResult {
+        Ok(())
+    }
+
+    fn visit_expr(&mut self, _: &mut Expr) -> VResult {
+        Ok(())
+    }
+
+    fn visit_type(&mut self, _: &mut Type) -> VResult {
+        Ok(())
+    }
+
+    fn visit_let(&mut self, _: &mut RefBinding, _: &mut RValue) -> VResult {
+        Ok(())
+    }
+
     fn visit_builtins(&mut self, _: &mut [Builtin]) -> VResult {
         Ok(())
     }

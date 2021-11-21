@@ -4,6 +4,7 @@ use crate::error::Result;
 use ethers::core::k256::U256;
 use std::fmt;
 
+mod identifier;
 mod import;
 mod label;
 

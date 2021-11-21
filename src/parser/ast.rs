@@ -281,6 +281,12 @@ pub enum Type {
     Pointer(Box<PointerType>),
 }
 
+impl Visitable for Type {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+       v.visit_type(self)
+    }
+}
+
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -460,12 +466,29 @@ impl fmt::Display for ConstantDef {
     }
 }
 
+impl Visitable for ConstantDef {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_const_def(self)?;
+        v.visit_expr(&mut self.init)
+    }
+}
+
 /// An identifier with an optional type hint `local <id> : ty`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedIdentifier {
     pub is_local: bool,
     pub id: String,
     pub ty: Option<Type>,
+}
+
+impl Visitable for TypedIdentifier {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_typed_identifier(self)?;
+        if let Some(ty) = self.ty.as_mut() {
+            ty.visit(v)?;
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Display for TypedIdentifier {
@@ -530,11 +553,25 @@ impl Instruction {
 impl Visitable for Instruction {
     fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
         match self {
-            Instruction::Const(_) => {}
+            Instruction::Const(i) => {
+                i.visit(v)?;
+            }
             Instruction::Member(_) => {}
-            Instruction::Let(_, _) => {}
-            Instruction::Local(_, _) => {}
-            Instruction::Tempvar(_, _) => {}
+            Instruction::Let(id, rvalue) => {
+                v.visit_let(id, &mut **rvalue)?;
+            }
+            Instruction::Local(id, expr) => {
+                id.visit(v)?;
+                if let Some(expr) = expr {
+                    v.visit_expr(expr)?;
+                }
+            }
+            Instruction::Tempvar(id, expr) => {
+                id.visit(v)?;
+                if let Some(expr) = expr {
+                    v.visit_expr(expr)?;
+                }
+            }
             Instruction::Assert(_, _) => {}
             Instruction::StaticAssert(_, _) => {}
             Instruction::Return(_) => {}
@@ -542,7 +579,9 @@ impl Visitable for Instruction {
             Instruction::If(i) => {
                 i.visit(v)?;
             }
-            Instruction::Label(_) => {}
+            Instruction::Label(i) => {
+                v.visit_label(i)?;
+            }
             Instruction::Function(i) => {
                 i.visit(v)?;
             }
@@ -886,7 +925,7 @@ pub struct IfStatement {
 
 impl Visitable for IfStatement {
     fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
-        v.visit_if(self);
+        v.visit_if(self)?;
         self.instructions.visit(v)?;
         if let Some(e) = self.else_branch.as_mut() {
             e.visit(v)?;

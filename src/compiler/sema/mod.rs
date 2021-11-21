@@ -36,6 +36,10 @@ pub struct PreprocessedProgram {
     pub modules: Vec<CairoModule>,
     /// various cairo builtins
     pub builtins: Option<Vec<Builtin>>,
+    /// Manages identifiers for
+    // TODO(mattssee): ideally this should be merged with the AST so that we have everything in one
+    // place
+    pub identifiers: Identifiers,
 }
 
 impl PreprocessedProgram {
@@ -49,9 +53,13 @@ impl PreprocessedProgram {
             main_scope,
             modules: Default::default(),
             builtins: None,
+            identifiers: Default::default(),
         }
     }
 }
+
+#[derive(Debug, Default)]
+pub struct Identifiers {}
 
 #[derive(Debug, Clone)]
 pub struct CairoModule {

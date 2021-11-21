@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// Adds unique labels to `IfStatements`.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct UniqueLabelPass {
     label_ctn: u64,
 }
