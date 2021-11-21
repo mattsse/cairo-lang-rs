@@ -1,5 +1,6 @@
 use crate::compiler::sema::ast::Visitor;
 use crate::compiler::ModuleReader;
+use crate::error::Result;
 
 /// A helper visitor type that can collect all imports of a given module
 pub struct ImportCollector<'a> {
@@ -16,7 +17,7 @@ impl<'a> ImportCollector<'a> {
     }
 
     /// Scans all imports of the
-    pub fn collect_imports(&mut self, module: &str) -> eyre::Result<()> {
+    pub fn collect_imports(&mut self, module: &str) -> Result<()> {
         todo!()
     }
 }

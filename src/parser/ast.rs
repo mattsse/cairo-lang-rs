@@ -1,7 +1,7 @@
 //! AST for Cairo-lang based on https://cairo-lang.org/docs/reference/syntax.html
+use crate::error::CairoError;
 use crate::parser::{
     self,
-    error::CairoError,
     lexer::{CairoLexer, CairoLexerError},
 };
 use std::{

@@ -8,7 +8,6 @@ use std::{fs, io};
 mod builtins;
 pub mod constants;
 mod data;
-mod error;
 mod instruction;
 mod module_reader;
 mod program;
