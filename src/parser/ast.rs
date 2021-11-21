@@ -47,8 +47,8 @@ impl AsRef<Vec<Instruction>> for CairoFile {
 }
 
 impl Visitable for CairoFile {
-    fn visit(&mut self, _v: &mut dyn Visitor) -> VResult {
-        Ok(())
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        self.0.visit(v)
     }
 }
 
@@ -87,6 +87,12 @@ pub struct ImportDirective {
 impl ImportDirective {
     pub fn name(&self) -> String {
         self.path.join(".")
+    }
+}
+
+impl Visitable for ImportDirective {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_import(self)
     }
 }
 
@@ -519,6 +525,46 @@ impl Instruction {
     }
 }
 
+impl Visitable for Instruction {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        match self {
+            Instruction::Const(_) => {}
+            Instruction::Member(_) => {}
+            Instruction::Let(_, _) => {}
+            Instruction::Local(_, _) => {}
+            Instruction::Tempvar(_, _) => {}
+            Instruction::Assert(_, _) => {}
+            Instruction::StaticAssert(_, _) => {}
+            Instruction::Return(_) => {}
+            Instruction::ReturnFunctionCall(_) => {}
+            Instruction::If(_) => {}
+            Instruction::Label(_) => {}
+            Instruction::Function(i) => {
+                i.visit(v)?;
+            }
+            Instruction::FunctionCall(_) => {}
+            Instruction::Struct(_) => {}
+            Instruction::Namespace(_) => {}
+            Instruction::WithAttrStatement(_) => {}
+            Instruction::WithStatement(_) => {}
+            Instruction::Hint(_) => {}
+            Instruction::Directive(_) => {}
+            Instruction::Import(i) => {
+                i.visit(v)?;
+            }
+            Instruction::AllocLocals => {}
+            Instruction::Assign(_, _) => {}
+            Instruction::Jmp(_) => {}
+            Instruction::CallInstruction(_) => {}
+            Instruction::Ret => {}
+            Instruction::ApAddAssign(_) => {}
+            Instruction::ApAdd(_) => {}
+            Instruction::DataWord(_) => {}
+        };
+        Ok(())
+    }
+}
+
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -597,6 +643,15 @@ impl fmt::Display for Instruction {
 pub enum Directive {
     Lang(Loc, Identifier),
     Builtins(Loc, Vec<Builtin>),
+}
+
+impl Visitable for Directive {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        match self {
+            Directive::Lang(_, id) => v.visit_lang(id),
+            Directive::Builtins(_, builtins) => v.visit_builtins(builtins),
+        }
+    }
 }
 
 impl fmt::Display for Directive {
@@ -752,6 +807,13 @@ pub struct FunctionDef {
     pub input_args: Vec<TypedIdentifier>,
     pub return_values: Option<Vec<TypedIdentifier>>,
     pub instructions: Vec<Instruction>,
+}
+
+impl Visitable for FunctionDef {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_function(self)?;
+        self.instructions.visit(v)
+    }
 }
 
 impl fmt::Display for FunctionDef {

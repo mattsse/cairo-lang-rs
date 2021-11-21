@@ -36,10 +36,10 @@ impl<'a> ImportCollector<'a> {
             return Ok(());
         }
 
-        let (code, _file) = self.reader.read(&current_module)?;
+        let (code, _) = self.reader.read(&current_module)?;
         let mut cairo_file = CairoFile::parse(&code)?;
 
-        let lang = LangVistor::lang(&mut cairo_file)?;
+        let lang = LangVisitor::lang(&mut cairo_file)?;
 
         // add current package to ancestors list before scanning its dependencies.
         self.current_ancestors.push(current_module.clone());
@@ -86,9 +86,9 @@ impl Visitor for DirectDependenciesCollector {
 
 /// A visitor that returns the %lang directive of a cairo file
 #[derive(Default)]
-struct LangVistor(Option<String>);
+struct LangVisitor(Option<String>);
 
-impl LangVistor {
+impl LangVisitor {
     fn lang(file: &mut CairoFile) -> Result<Option<String>> {
         let mut lang = Self::default();
         file.visit(&mut lang)?;
@@ -96,7 +96,7 @@ impl LangVistor {
     }
 }
 
-impl Visitor for LangVistor {
+impl Visitor for LangVisitor {
     fn visit_lang(&mut self, id: &mut Identifier) -> VResult {
         let id = id.join(".");
         if self.0.is_some() {
@@ -113,7 +113,18 @@ impl Visitor for LangVistor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
+
+    fn test_reader() -> ModuleReader {
+        let root = Path::new(&env!("CARGO_MANIFEST_DIR"));
+        ModuleReader::new([root.join("common"), root.join("test-data/cairo-files")])
+    }
 
     #[test]
-    fn can_collect_imports() {}
+    fn can_collect_imports() {
+        let reader = test_reader();
+        let mut imports = ImportCollector::new(&reader);
+        imports.collect_imports("imports").unwrap();
+        assert!(!imports.collected_files.is_empty());
+    }
 }

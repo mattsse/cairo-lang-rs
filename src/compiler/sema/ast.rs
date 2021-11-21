@@ -10,6 +10,10 @@ pub trait Visitor {
         Ok(())
     }
 
+    fn visit_builtins(&mut self, _: &mut [Builtin]) -> VResult {
+        Ok(())
+    }
+
     fn visit_import(&mut self, _import: &mut ImportDirective) -> VResult {
         Ok(())
     }

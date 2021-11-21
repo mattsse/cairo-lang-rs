@@ -34,7 +34,7 @@ impl ModuleReader {
         self.paths
             .iter()
             .map(|p| p.join(&file_name))
-            .find(|path| path.join(&file_name).exists())
+            .find(|path| path.exists())
     }
 
     /// Finds the module's file and read its content
