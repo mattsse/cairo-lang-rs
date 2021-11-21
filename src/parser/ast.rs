@@ -1,9 +1,11 @@
 //! AST for Cairo-lang based on https://cairo-lang.org/docs/reference/syntax.html
-use crate::compiler::{VResult, Visitable, Visitor};
-use crate::error::CairoError;
-use crate::parser::{
-    self,
-    lexer::{CairoLexer, CairoLexerError},
+use crate::{
+    compiler::{VResult, Visitable, Visitor},
+    error::CairoError,
+    parser::{
+        self,
+        lexer::{CairoLexer, CairoLexerError},
+    },
 };
 use std::{
     fmt::{self, Write},
@@ -897,7 +899,7 @@ where
 {
     let mut iter = items.into_iter().peekable();
     if iter.peek().is_none() {
-        return Ok(());
+        return Ok(())
     }
     separated(iter, f, '\n')?;
     f.write_char('\n')

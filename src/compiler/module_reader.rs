@@ -1,13 +1,16 @@
-use crate::compiler::constants::{CAIRO_FILE_EXTENSION, LIBS_DIR_ENVVAR};
-use crate::compiler::sema::ScopedName;
-use crate::error::{CairoError, Result};
-use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
+use crate::{
+    compiler::{
+        constants::{CAIRO_FILE_EXTENSION, LIBS_DIR_ENVVAR},
+        sema::ScopedName,
+    },
+    error::{CairoError, Result},
+};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 /// Helper types that's used to read module files based their names
 ///
-/// In oder to be able to properly resolve the modules, they must be stored under one of the allowed paths.
+/// In oder to be able to properly resolve the modules, they must be stored under one of the allowed
+/// paths.
 #[derive(Debug, Clone)]
 pub struct ModuleReader {
     /// where to look for paths
@@ -31,10 +34,7 @@ impl ModuleReader {
     pub fn find(&self, module: impl AsRef<str>) -> Option<PathBuf> {
         let scope = ScopedName::from_str(module);
         let file_name = format!("{}{}", scope.last()?, CAIRO_FILE_EXTENSION);
-        self.paths
-            .iter()
-            .map(|p| p.join(&file_name))
-            .find(|path| path.exists())
+        self.paths.iter().map(|p| p.join(&file_name)).find(|path| path.exists())
     }
 }
 
@@ -56,9 +56,8 @@ pub(crate) trait CodeReader {
 impl<'a> CodeReader for &'a ModuleReader {
     /// Finds the module's file and read its content
     fn read(&self, module: &str) -> Result<(String, PathBuf)> {
-        let file = self
-            .find(module)
-            .ok_or_else(|| CairoError::ModuleNotFound(module.to_string()))?;
+        let file =
+            self.find(module).ok_or_else(|| CairoError::ModuleNotFound(module.to_string()))?;
         Ok(fs::read_to_string(&file).map(|c| (c, file))?)
     }
 }

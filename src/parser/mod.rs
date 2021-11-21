@@ -12,7 +12,7 @@ mod grammar {
 #[cfg(test)]
 mod tests {
 
-    use crate::{parser::ast::*, parser::lexer::*};
+    use crate::parser::{ast::*, lexer::*};
     use std::path::Path;
 
     fn tokenize(s: &str) -> Vec<Result<(usize, CairoToken, usize), CairoLexerError>> {
@@ -37,17 +37,11 @@ mod tests {
 
     macro_rules! _parse_unwrap {
         ($input:expr, $parser:ident) => {
-            cairo_grammar::$parser::new()
-                .parse($input, CairoLexer::new($input))
-                .unwrap();
+            cairo_grammar::$parser::new().parse($input, CairoLexer::new($input)).unwrap();
         };
         ($input:expr, [$parser1:ident, $parser2:ident]) => {
-            cairo_grammar::$parser1::new()
-                .parse($input, CairoLexer::new($input))
-                .unwrap();
-            cairo_grammar::$parser2::new()
-                .parse($input, CairoLexer::new($input))
-                .unwrap();
+            cairo_grammar::$parser1::new().parse($input, CairoLexer::new($input)).unwrap();
+            cairo_grammar::$parser2::new().parse($input, CairoLexer::new($input)).unwrap();
         };
     }
 
@@ -58,11 +52,7 @@ mod tests {
             let file = file.unwrap();
             let file_name = format!("{}", file.path().file_name().unwrap().to_string_lossy());
             let content = std::fs::read_to_string(file.path()).unwrap();
-            assert!(
-                tokenize(&content).into_iter().all(|x| x.is_ok()),
-                "{}",
-                file_name
-            );
+            assert!(tokenize(&content).into_iter().all(|x| x.is_ok()), "{}", file_name);
             CairoFile::parse(&content).expect(&file_name);
         }
     }

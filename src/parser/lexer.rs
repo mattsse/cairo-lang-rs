@@ -31,17 +31,12 @@ impl<'input> From<ParseError<usize, CairoToken<'input>, CairoLexerError>> for Ca
             ParseError::InvalidToken { location } => {
                 CairoLexerError::parser_error(Loc(location, location), "invalid token".to_string())
             }
-            ParseError::UnrecognizedToken {
-                token: (l, token, r),
-                expected,
-            } => CairoLexerError::parser_error(
-                Loc(l, r),
-                format!(
-                    "unrecognised token `{:?}', expected {}",
-                    token,
-                    expected.join(", ")
-                ),
-            ),
+            ParseError::UnrecognizedToken { token: (l, token, r), expected } => {
+                CairoLexerError::parser_error(
+                    Loc(l, r),
+                    format!("unrecognised token `{:?}', expected {}", token, expected.join(", ")),
+                )
+            }
             ParseError::User { error } => error,
             ParseError::ExtraToken { token } => CairoLexerError::parser_error(
                 Loc(token.0, token.2),
@@ -142,10 +137,7 @@ pub(crate) struct CairoLexer<'input> {
 
 impl<'input> CairoLexer<'input> {
     pub fn new(input: &'input str) -> CairoLexer<'input> {
-        CairoLexer {
-            chars: input.char_indices().peekable(),
-            input,
-        }
+        CairoLexer { chars: input.char_indices().peekable(), input }
     }
 
     fn string(
@@ -163,31 +155,20 @@ impl<'input> CairoLexer<'input> {
                 end = i;
                 if !last_was_escape {
                     if ch == quote_char {
-                        break;
+                        break
                     }
                     last_was_escape = ch == '\\';
                 } else {
                     last_was_escape = false;
                 }
             } else {
-                return Err(CairoLexerError::EndOfFileInString(
-                    token_start,
-                    self.input.len(),
-                ));
+                return Err(CairoLexerError::EndOfFileInString(token_start, self.input.len()))
             }
         }
         if quote_char == '\'' {
-            Ok((
-                token_start,
-                CairoToken::ShortStringLiteral(&self.input[string_start..end]),
-                end,
-            ))
+            Ok((token_start, CairoToken::ShortStringLiteral(&self.input[string_start..end]), end))
         } else {
-            Ok((
-                token_start,
-                CairoToken::StringLiteral(&self.input[string_start..end]),
-                end,
-            ))
+            Ok((token_start, CairoToken::StringLiteral(&self.input[string_start..end]), end))
         }
     }
 
@@ -204,7 +185,7 @@ impl<'input> CairoLexer<'input> {
                     match self.chars.peek() {
                         Some((_, '}')) => {
                             self.chars.next();
-                            break;
+                            break
                         }
                         None => {
                             return Err(CairoLexerError::EndOfFileInHint(
@@ -215,21 +196,12 @@ impl<'input> CairoLexer<'input> {
                         _ => {}
                     }
                 }
-                None => {
-                    return Err(CairoLexerError::EndOfFileInHint(
-                        token_start,
-                        self.input.len(),
-                    ))
-                }
+                None => return Err(CairoLexerError::EndOfFileInHint(token_start, self.input.len())),
                 _ => {}
             }
         }
 
-        Ok((
-            token_start,
-            CairoToken::Hint(&self.input[string_start..end]),
-            end + 1,
-        ))
+        Ok((token_start, CairoToken::Hint(&self.input[string_start..end]), end + 1))
     }
 
     fn keyword(id: &str) -> Option<CairoToken> {
@@ -279,12 +251,12 @@ impl<'input> CairoLexer<'input> {
                         if let Some((i, ch)) = self.chars.peek() {
                             if !UnicodeXID::is_xid_continue(*ch) && *ch != '$' {
                                 end = *i;
-                                break;
+                                break
                             }
                             self.chars.next();
                         } else {
                             end = self.input.len();
-                            break;
+                            break
                         }
                     }
                     let id = &self.input[start..end];
@@ -293,7 +265,7 @@ impl<'input> CairoLexer<'input> {
                         Some(Ok((start, w, end)))
                     } else {
                         Some(Ok((start, CairoToken::Identifier(id), end)))
-                    };
+                    }
                 }
                 Some((_i, '#')) => {
                     // ignore Comments for now
@@ -303,7 +275,7 @@ impl<'input> CairoLexer<'input> {
                         match self.chars.peek() {
                             Some((_, '\r')) | Some((_, '\n')) => break,
                             None => {
-                                return None;
+                                return None
                             }
                             _ => {
                                 self.chars.next();
@@ -323,7 +295,7 @@ impl<'input> CairoLexer<'input> {
                             Some(Ok((i, CairoToken::Equals, i + 2)))
                         }
                         _ => Some(Ok((i, CairoToken::Assign, i + 1))),
-                    };
+                    }
                 }
                 Some((i, '%')) => {
                     return match self.chars.peek() {
@@ -348,7 +320,7 @@ impl<'input> CairoLexer<'input> {
                             }
                         }
                         _ => Some(Ok((i, CairoToken::Percent, i + 1))),
-                    };
+                    }
                 }
                 Some((start, ch)) if ch.is_ascii_digit() => {
                     let mut end = start + 1;
@@ -363,19 +335,19 @@ impl<'input> CairoLexer<'input> {
                                     return Some(Err(CairoLexerError::MissingNumber(
                                         start,
                                         start + 1,
-                                    )));
+                                    )))
                                 }
                                 None => {
                                     return Some(Err(CairoLexerError::EndofFileInHex(
                                         start,
                                         self.input.len(),
-                                    )));
+                                    )))
                                 }
                             };
 
                             while let Some((i, ch)) = self.chars.peek() {
                                 if !ch.is_ascii_hexdigit() && *ch != '_' {
-                                    break;
+                                    break
                                 }
                                 end = *i;
                                 self.chars.next();
@@ -385,27 +357,23 @@ impl<'input> CairoLexer<'input> {
                                 start,
                                 CairoToken::HexNumber(&self.input[start..=end]),
                                 end + 1,
-                            )));
+                            )))
                         }
                     }
 
                     loop {
                         if let Some((i, ch)) = self.chars.peek().cloned() {
                             if !ch.is_ascii_digit() {
-                                break;
+                                break
                             }
                             self.chars.next();
                             end = i;
                         } else {
                             end = self.input.len();
-                            break;
+                            break
                         }
                     }
-                    return Some(Ok((
-                        start,
-                        CairoToken::Number(&self.input[start..end]),
-                        end + 1,
-                    )));
+                    return Some(Ok((start, CairoToken::Number(&self.input[start..end]), end + 1)))
                 }
                 Some((i, '\r' | '\n')) => return Some(Ok((i, CairoToken::Newline, i + 1))),
                 Some((i, '(')) => return Some(Ok((i, CairoToken::OpenParenthesis, i + 1))),
@@ -426,7 +394,7 @@ impl<'input> CairoLexer<'input> {
                             Some(Ok((i, CairoToken::Neq, i + 2)))
                         }
                         _ => Some(Ok((i, CairoToken::Not, i + 1))),
-                    };
+                    }
                 }
                 Some((i, '-')) => {
                     return match self.chars.peek() {
@@ -435,7 +403,7 @@ impl<'input> CairoLexer<'input> {
                             Some(Ok((i, CairoToken::Arrow, i + 2)))
                         }
                         _ => Some(Ok((i, CairoToken::Sub, i + 1))),
-                    };
+                    }
                 }
                 Some((i, '@')) => return Some(Ok((i, CairoToken::At, i + 1))),
                 Some((i, '/')) => return Some(Ok((i, CairoToken::Div, i + 1))),
@@ -446,7 +414,7 @@ impl<'input> CairoLexer<'input> {
                             Some(Ok((i, CairoToken::DoubleStar, i + 2)))
                         }
                         _ => Some(Ok((i, CairoToken::Star, i + 1))),
-                    };
+                    }
                 }
                 Some((i, '+')) => {
                     return match self.chars.peek() {
@@ -459,10 +427,10 @@ impl<'input> CairoLexer<'input> {
                             Some(Ok((i, CairoToken::AddAssign, i + 2)))
                         }
                         _ => Some(Ok((i, CairoToken::Add, i + 1))),
-                    };
+                    }
                 }
                 Some((start, quote_char @ ('"' | '\''))) => {
-                    return Some(self.string(start, start + 1, quote_char));
+                    return Some(self.string(start, start + 1, quote_char))
                 }
                 Some((_, ch)) if ch.is_whitespace() => (),
                 Some((start, _)) => {
@@ -472,11 +440,11 @@ impl<'input> CairoLexer<'input> {
                         if let Some((i, ch)) = self.chars.next() {
                             end = i;
                             if ch.is_whitespace() {
-                                break;
+                                break
                             }
                         } else {
                             end = self.input.len();
-                            break;
+                            break
                         }
                     }
 
@@ -484,10 +452,10 @@ impl<'input> CairoLexer<'input> {
                         start,
                         end,
                         self.input[start..end].to_owned(),
-                    )));
+                    )))
                 }
                 None => {
-                    return None;
+                    return None
                 }
             }
         }

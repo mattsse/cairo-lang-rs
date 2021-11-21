@@ -1,10 +1,10 @@
-use crate::error::Result;
-use crate::parser::ast::*;
+use crate::{error::Result, parser::ast::*};
 
 /// the general purpose result type used in passes
 pub type VResult = Result<()>;
 
-/// A trait intended to be implemented by compiler passes that make it easier to traverse the AST and only do operations on specific nodes.
+/// A trait intended to be implemented by compiler passes that make it easier to traverse the AST
+/// and only do operations on specific nodes.
 pub trait Visitor {
     fn visit_lang(&mut self, _id: &mut Identifier) -> VResult {
         Ok(())
@@ -23,9 +23,11 @@ pub trait Visitor {
     }
 }
 
-/// A trait for AST nodes that get called by their parent nodes with the current compiler pass `Vistor`
+/// A trait for AST nodes that get called by their parent nodes with the current compiler pass
+/// `Vistor`
 pub trait Visitable {
-    /// enter the node with the given visitor. The node is expected to call the visitor's callback functions while visiting its child nodes.
+    /// enter the node with the given visitor. The node is expected to call the visitor's callback
+    /// functions while visiting its child nodes.
     fn visit(&mut self, v: &mut dyn Visitor) -> VResult;
 }
 

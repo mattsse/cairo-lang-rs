@@ -1,7 +1,6 @@
 use crate::compiler::program::Program;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Contract {

@@ -1,13 +1,19 @@
-use crate::compiler::module_reader::CodeReader;
-use crate::compiler::sema::ast::Visitor;
-use crate::compiler::sema::passes::Pass;
-use crate::compiler::sema::{CairoContent, CairoModule, PreprocessedProgram, ScopedName};
-use crate::compiler::{ModuleReader, VResult, Visitable};
-use crate::error::{CairoError, Result};
-use crate::parser::ast::{Identifier, ImportDirective};
-use crate::CairoFile;
-use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use crate::{
+    compiler::{
+        module_reader::CodeReader,
+        sema::{
+            ast::Visitor, passes::Pass, CairoContent, CairoModule, PreprocessedProgram, ScopedName,
+        },
+        ModuleReader, VResult, Visitable,
+    },
+    error::{CairoError, Result},
+    parser::ast::{Identifier, ImportDirective},
+    CairoFile,
+};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 #[derive(Debug, Default)]
 pub struct ModuleCollector {
@@ -21,10 +27,7 @@ impl ModuleCollector {
     }
 
     pub fn with_modules(reader: ModuleReader, additional_modules: Vec<String>) -> Self {
-        Self {
-            reader,
-            additional_modules,
-        }
+        Self { reader, additional_modules }
     }
 }
 
@@ -47,10 +50,8 @@ impl Pass for ModuleCollector {
 
         // resolve source files
         for content in &prg.codes {
-            let mut collector = ImportCollector::new(InputCodeReader {
-                reader: &self.reader,
-                content,
-            });
+            let mut collector =
+                ImportCollector::new(InputCodeReader { reader: &self.reader, content });
             let file_name = content.name();
             collector.collect_imports(file_name.clone())?;
             for (module_name, cairo_file) in collector.collected_files {
@@ -58,7 +59,7 @@ impl Pass for ModuleCollector {
                     prg.main_scope.clone()
                 } else {
                     if !visited.insert(module_name.clone()) {
-                        continue;
+                        continue
                     }
                     ScopedName::from_str(module_name)
                 };
@@ -109,11 +110,11 @@ impl<T: CodeReader> ImportCollector<T> {
         if self.current_ancestors.contains(&current_module) {
             return Err(CairoError::CircularDependencies(std::mem::take(
                 &mut self.current_ancestors,
-            )));
+            )))
         }
         if self.collected_files.contains_key(&current_module) {
             // file already parsed
-            return Ok(());
+            return Ok(())
         }
 
         let (code, _) = self.reader.read(&current_module)?;
@@ -127,19 +128,14 @@ impl<T: CodeReader> ImportCollector<T> {
         // collect direct dependencies
         for pkg in DirectDependenciesCollector::deps(&mut cairo_file)? {
             self.collect_imports(&pkg)?;
-            let same_directive = if let Some(l) = self.langs.get(&pkg) {
-                l == &lang
-            } else {
-                true
-            };
+            let same_directive = if let Some(l) = self.langs.get(&pkg) { l == &lang } else { true };
             if !same_directive {
                 return Err(CairoError::InvalidImport(format!("importing modules with %lang directive {:?} must be from a module with the same directive", self.langs.get(&pkg))));
             }
         }
 
         self.current_ancestors.pop();
-        self.collected_files
-            .insert(current_module.clone(), cairo_file);
+        self.collected_files.insert(current_module.clone(), cairo_file);
         self.langs.insert(current_module, lang);
         Ok(())
     }
@@ -180,10 +176,7 @@ impl Visitor for LangVisitor {
     fn visit_lang(&mut self, id: &mut Identifier) -> VResult {
         let id = id.join(".");
         if self.0.is_some() {
-            return Err(CairoError::msg(format!(
-                "Found two %lang directives {}",
-                id
-            )));
+            return Err(CairoError::msg(format!("Found two %lang directives {}", id)))
         }
         self.0 = Some(id);
         Ok(())

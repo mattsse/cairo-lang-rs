@@ -1,9 +1,12 @@
-pub use crate::compiler::data::DebugInfo;
-pub use crate::compiler::module_reader::ModuleReader;
-use crate::compiler::sema::{PreprocessedProgram, ScopedName};
-use crate::error::Result;
-use std::path::{Path, PathBuf};
-use std::{fs, io};
+pub use crate::compiler::{data::DebugInfo, module_reader::ModuleReader};
+use crate::{
+    compiler::sema::{PreprocessedProgram, ScopedName},
+    error::Result,
+};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 /// compiler builtins
 mod builtins;
@@ -15,8 +18,10 @@ mod program;
 pub use program::Program;
 mod sema;
 use crate::compiler::constants::{START_CODE, START_FILE_NAME};
-pub use sema::ast::{VResult, Visitable, Visitor};
-pub use sema::passes::PassManager;
+pub use sema::{
+    ast::{VResult, Visitable, Visitor},
+    passes::PassManager,
+};
 
 /// Utility struct to compile a list of cairo files
 #[derive(Debug, Clone)]
@@ -54,13 +59,10 @@ where
     }
 
     let mut debug_info = DebugInfo::default();
-    if let Some((content, file)) = codes
-        .get(0)
-        .filter(|(_, file)| file == Path::new(START_FILE_NAME))
+    if let Some((content, file)) =
+        codes.get(0).filter(|(_, file)| file == Path::new(START_FILE_NAME))
     {
-        debug_info
-            .file_contents
-            .insert(file.clone(), content.clone());
+        debug_info.file_contents.insert(file.clone(), content.clone());
     }
 
     let mut pass_manager = pass_manager.into();

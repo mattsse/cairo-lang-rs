@@ -1,8 +1,8 @@
-
-use crate::parser::ast::{Builtin, Identifier};
-use crate::CairoFile;
-use std::borrow::Cow;
-use std::path::PathBuf;
+use crate::{
+    parser::ast::{Builtin, Identifier},
+    CairoFile,
+};
+use std::{borrow::Cow, path::PathBuf};
 
 pub mod ast;
 pub mod passes;
@@ -45,10 +45,7 @@ impl PreprocessedProgram {
         I: IntoIterator<Item = (String, PathBuf)>,
     {
         Self {
-            codes: codes
-                .into_iter()
-                .map(|(c, p)| CairoContent::new(c, p))
-                .collect(),
+            codes: codes.into_iter().map(|(c, p)| CairoContent::new(c, p)).collect(),
             main_scope,
             modules: Default::default(),
             builtins: None,
@@ -64,10 +61,7 @@ pub struct CairoModule {
 
 impl CairoModule {
     pub fn new(module_name: ScopedName, cairo_file: CairoFile) -> Self {
-        Self {
-            module_name,
-            cairo_file,
-        }
+        Self { module_name, cairo_file }
     }
 }
 
