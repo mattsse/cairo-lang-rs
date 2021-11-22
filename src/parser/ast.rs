@@ -283,7 +283,7 @@ pub enum Type {
 
 impl Visitable for Type {
     fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
-       v.visit_type(self)
+        v.visit_type(self)
     }
 }
 
@@ -561,12 +561,14 @@ impl Visitable for Instruction {
                 v.visit_let(id, &mut **rvalue)?;
             }
             Instruction::Local(id, expr) => {
+                v.visit_local_var(id, expr)?;
                 id.visit(v)?;
                 if let Some(expr) = expr {
                     v.visit_expr(expr)?;
                 }
             }
             Instruction::Tempvar(id, expr) => {
+                v.visit_temp_var(id, expr)?;
                 id.visit(v)?;
                 if let Some(expr) = expr {
                     v.visit_expr(expr)?;

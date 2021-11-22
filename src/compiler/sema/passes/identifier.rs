@@ -1,8 +1,13 @@
 use crate::{
     compiler::{
-        sema::{passes::Pass, PreprocessedProgram}, Visitable, Visitor,
+        sema::{passes::Pass, PreprocessedProgram},
+        VResult, Visitable, Visitor,
     },
     error::Result,
+    parser::ast::{
+        ConstantDef, Expr, Identifier, RValue,
+        RefBinding, TypedIdentifier,
+    },
 };
 
 /// Manages identifiers for cairo code elements.
@@ -22,5 +27,23 @@ impl Pass for IdentifierCollectorPass {
 }
 
 impl Visitor for IdentifierCollectorPass {
-    // TODO get the identifiers from the code element
+    fn visit_const_def(&mut self, _: &mut ConstantDef) -> VResult {
+        Ok(())
+    }
+
+    fn visit_label(&mut self, _: &mut Identifier) -> VResult {
+        Ok(())
+    }
+
+    fn visit_let(&mut self, _: &mut RefBinding, _: &mut RValue) -> VResult {
+        todo!()
+    }
+
+    fn visit_local_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        Ok(())
+    }
+
+    fn visit_temp_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        Ok(())
+    }
 }

@@ -7,6 +7,7 @@ use std::fmt;
 mod identifier;
 mod import;
 mod label;
+mod directives;
 
 /// A manager for running passes
 #[derive(Debug)]

@@ -49,6 +49,14 @@ pub trait Visitor {
     fn visit_if(&mut self, _: &mut IfStatement) -> VResult {
         Ok(())
     }
+
+    fn visit_local_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        Ok(())
+    }
+
+    fn visit_temp_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        Ok(())
+    }
 }
 
 /// A trait for AST nodes that get called by their parent nodes with the current compiler pass
