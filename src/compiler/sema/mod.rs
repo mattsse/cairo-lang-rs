@@ -4,7 +4,7 @@ use crate::{
     parser::ast::{Builtin, Identifier},
     CairoFile,
 };
-use std::{borrow::Cow, path::PathBuf, rc::Rc};
+use std::{borrow::Cow, fmt, path::PathBuf, rc::Rc};
 
 pub mod ast;
 pub mod identifiers;
@@ -77,8 +77,8 @@ impl CairoModule {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ScopedName(pub Identifier);
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct ScopedName(Identifier);
 
 impl ScopedName {
     pub fn main_scope() -> Self {
@@ -89,8 +89,27 @@ impl ScopedName {
         Self::from_str("SIZE")
     }
 
+    pub fn return_scope() -> Self {
+        Self::from_str("Return")
+    }
+
+    pub fn implicit_args_scope() -> Self {
+        Self::from_str("ImplicitArgs")
+    }
+
+    pub fn args_scope() -> Self {
+        Self::from_str("Args")
+    }
+
+    /// The root scope, an empty scope
+    pub fn root() -> Self {
+        ScopedName(Default::default())
+    }
+
     pub fn from_str(s: impl AsRef<str>) -> Self {
-        ScopedName(s.as_ref().split('.').map(str::to_string).collect())
+        let s = s.as_ref();
+        assert!(!s.is_empty(), "scope named requires >=1 identifier");
+        ScopedName(s.split('.').map(str::to_string).collect())
     }
 
     pub fn last(&self) -> Option<&String> {
@@ -101,7 +120,36 @@ impl ScopedName {
         self.0.push(name)
     }
 
-    // ARGUMENT_SCOPE = ScopedName.from_string("Args")
-    // IMPLICIT_ARGUMENT_SCOPE = ScopedName.from_string("ImplicitArgs")
-    // RETURN_SCOPE = ScopedName.from_string("Return")
+    pub fn name(&self) -> String {
+        self.0.join(".")
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Removes the first name of the set and returns the remainder if there are any ids left
+    pub fn split(mut self) -> (String, Option<ScopedName>) {
+        let name = self.0.remove(0);
+        if self.is_empty() {
+            (name, None)
+        } else {
+            (name, Some(self))
+        }
+    }
+
+    pub fn appended(mut self, id: impl Into<String>) -> Self {
+        self.0.push(id.into());
+        self
+    }
+}
+
+impl fmt::Display for ScopedName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0.join(""))
+    }
 }

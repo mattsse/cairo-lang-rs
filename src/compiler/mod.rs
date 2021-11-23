@@ -16,7 +16,7 @@ mod instruction;
 mod module_reader;
 mod program;
 pub use program::Program;
-mod sema;
+pub mod sema;
 use crate::compiler::constants::{START_CODE, START_FILE_NAME};
 pub use sema::{
     ast::{VResult, Visitable, Visitor},

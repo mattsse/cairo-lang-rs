@@ -25,6 +25,10 @@ impl Pass for IdentifierCollectorPass {
             let mut visitor =
                 IdVisitor { identifiers: &mut prg.identifiers, scope_tracker: &mut scope_tracker };
 
+            // TODO store the full name directly in the AST use a hashmap to track potential
+            // duplicates  need to add pub fullname: Option<ScopedNamed> to various AST
+            // type, and also store in prg identifiers
+
             module.cairo_file.visit(&mut visitor)?;
 
             scope_tracker.exit_scope();

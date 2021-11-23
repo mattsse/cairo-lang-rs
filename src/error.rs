@@ -1,6 +1,7 @@
 use crate::parser::lexer::CairoLexerError;
 use std::io;
 
+use crate::compiler::sema::ScopedName;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, CairoError>;
@@ -20,10 +21,12 @@ pub enum CairoError {
     Message(String),
     #[error("{0}")]
     InvalidImport(String),
-    #[error("{0}")]
-    Identifier(String),
+    #[error("Missing identifier: {0}")]
+    MissingIdentifier(ScopedName),
     #[error("{0}")]
     Preprocess(String),
+    #[error("`{0}` is not a scope")]
+    NotScope(ScopedName),
 }
 
 impl CairoError {
