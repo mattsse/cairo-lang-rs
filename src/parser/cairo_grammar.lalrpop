@@ -20,7 +20,7 @@ Rename: String = {
 }
 
 AliasedId: AliasedId = {
-   <id:Id> <alias:Rename?> => AliasedId { id, alias }
+   <l:@L> <id:Id> <alias:Rename?>  <r:@L>=> AliasedId { id, alias, loc:Loc(l,r) }
 }
 
 FunctionImport: FunctionImport = {
@@ -31,43 +31,43 @@ FunctionImport: FunctionImport = {
 // ------------- Types ------------------
 
 Atom: Expr = {
-    "nondet" <x:Hint>  => Expr::Hint(<>),
-    <n:number> => Expr::Int(n.parse().unwrap()),
-    <s:shortstring> => Expr::ShortString(s.to_string()),
-    <s:hexnumber> => Expr::HexInt(s.to_string()),
-    Register  => Expr::Register(<>),
-    FunctionCall  => Expr::FunctionCall(<>),
-    "[" notes <x:Expr> "]"  => Expr::Deref(Box::new(x)),
-    <pre:Atom> "[" notes <x:Expr> "]"  => Expr::Subscript(Box::new(pre), Box::new(x)),
-    <id:Identifier> "[" notes <x:Expr> "]"  => Expr::Subscript(Box::new(Expr::Id(id)), Box::new(x)),
-    <x:Atom> "." <s:Id> =>  Expr::Dot(Box::new(x), s),
-    "cast" "(" notes <x:Expr> "," <ty:Type> ")"  => Expr::Cast(Box::new(x),ty),
-    "(" <args:ArgList> ")"  => Expr::Parentheses(args),
+    <l:@L> "nondet" <x:Hint> <r:@L> => Expr::Hint(x, Loc(l,r)),
+    <l:@L> <n:number> <r:@L> => Expr::Int(n.parse().unwrap(), Loc(l,r)),
+    <l:@L> <s:shortstring> <r:@L>=> Expr::ShortString(s.to_string(), Loc(l,r)),
+    <l:@L> <s:hexnumber> <r:@L>=> Expr::HexInt(s.to_string(), Loc(l,r)),
+    <l:@L> <s:Register>  <r:@L>=> Expr::Register(s, Loc(l,r)),
+     FunctionCall  => Expr::FunctionCall(<>),
+    <l:@L> "[" notes <x:Expr> "]" <r:@L> => Expr::Deref(Box::new(x), Loc(l,r)),
+    <l:@L> <pre:Atom> "[" notes <x:Expr> "]"  <r:@L>=> Expr::Subscript(Box::new(pre), Box::new(x), Loc(l,r)),
+    <l:@L> <id:Identifier> <m:@L> "[" notes <x:Expr> "]" <r:@L> => Expr::Subscript(Box::new(Expr::Id(id, Loc(l,m))), Box::new(x), Loc(l,r)),
+    <l:@L> <x:Atom> "." <s:Id> <r:@L> =>  Expr::Dot(Box::new(x), s, Loc(l,r)),
+    <l:@L> "cast" "(" notes <x:Expr> "," <ty:Type> ")" <r:@L> => Expr::Cast(Box::new(x),ty, Loc(l,r)),
+    <l:@L> "(" <args:ArgList> ")"  <r:@L>=> Expr::Parentheses(args, Loc(l,r)),
 }
 
 Pow: Expr = {
-     Identifier => Expr::Id(<>),
+    <l:@L>  <id:Identifier> <r:@L>  => Expr::Id(id, Loc(l,r)),
      Atom,
-     <lhs:Atom> "**" <rhs:Pow>   => Expr::Pow(Box::new(lhs), Box::new(rhs)),
-     <id:Identifier> "**" <rhs:Pow>   => Expr::Pow(Box::new(Expr::Id(id)), Box::new(rhs)),
+     <l:@L> <lhs:Atom> "**" <rhs:Pow>   <r:@L> => Expr::Pow(Box::new(lhs), Box::new(rhs), Loc(l,r)),
+     <l:@L>  <id:Identifier> <m:@L> "**" <rhs:Pow>  <r:@L>  => Expr::Pow(Box::new(Expr::Id(id, Loc(l,m))), Box::new(rhs), Loc(l,r)),
 }
 
 Unary: Expr = {
    Pow,
-   "&" <x:Unary>  => Expr::Address(Box::new(x)),
-   "-" <x:Unary>  => Expr::Neg(Box::new(x)),
+   <l:@L> "&" <x:Unary> <r:@L> => Expr::Address(Box::new(x), Loc(l,r)),
+   <l:@L> "-" <x:Unary> <r:@L> => Expr::Neg(Box::new(x), Loc(l,r)),
 }
 
 Product: Expr = {
     Unary,
-    <lhs:Product> "*" notes <rhs:Unary>    => Expr::Mul(Box::new(lhs), Box::new(rhs)),
-    <lhs:Product> "/" notes <rhs:Unary>    => Expr::Div(Box::new(lhs), Box::new(rhs)),
+    <l:@L><lhs:Product> "*" notes <rhs:Unary> <r:@L> => Expr::Mul(Box::new(lhs), Box::new(rhs), Loc(l,r)),
+    <l:@L> <lhs:Product> "/" notes <rhs:Unary>  <r:@L> => Expr::Div(Box::new(lhs), Box::new(rhs), Loc(l,r)),
 }
 
 Sum: Expr = {
     Product,
-    <lhs:Sum> "+" notes <rhs:Product> => Expr::Add(Box::new(lhs),Box::new(rhs)),
-    <lhs:Sum> "-" notes <rhs:Product> => Expr::Sub(Box::new(lhs),Box::new(rhs)),
+   <l:@L><lhs:Sum> "+" notes <rhs:Product> <r:@L> => Expr::Add(Box::new(lhs),Box::new(rhs), Loc(l,r)),
+   <l:@L> <lhs:Sum> "-" notes <rhs:Product> <r:@L> => Expr::Sub(Box::new(lhs),Box::new(rhs), Loc(l,r)),
 }
 
 Expr: Expr = {
@@ -112,7 +112,7 @@ Jmp: Jmp = {
 }
 
 IfStatement: IfStatement = {
-   "if" <cond:BoolExpr> ":" newline <instructions:CodeBlock> <else_branch:ElseBranch?> "end" => IfStatement{cond,instructions, else_branch, label_neq: None, label_end: None}
+    <l:@L>  "if" <cond:BoolExpr> ":" newline <instructions:CodeBlock> <else_branch:ElseBranch?> "end"  <r:@L>  => IfStatement{cond,instructions, else_branch, label_neq: None, label_end: None, loc:Loc(l,r)}
 }
 
 ElseBranch: Vec<Instruction> = {
@@ -130,15 +130,15 @@ Register: Register = {
 }
 
 ConstantDef: ConstantDef = {
-    "const" <name:Id> "=" <init:Expr> => ConstantDef {name, init},
+    <l:@L>  "const" <name:Id> "=" <init:Expr> <r:@L>  => ConstantDef {name, init, loc:Loc(l,r) },
 }
 
 Namespace: Namespace = {
-    <decorators:DecoratorList>  "namespace" <name:Id> ":" newline <instructions:CodeBlock> "end"=> Namespace {decorators, name, instructions }
+   <l:@L>  <decorators:DecoratorList>  "namespace" <name:Id> ":" newline <instructions:CodeBlock> "end" <r:@L>  => Namespace {decorators, name, instructions,loc:Loc(l,r)  }
 }
 
 Struct: Struct = {
-    <decorators:DecoratorList>  "struct" <name:Id> ":" newline <members:Member*> "end"=> Struct {decorators, name, members }
+    <l:@L>  <decorators:DecoratorList>  "struct" <name:Id> ":" newline <members:Member*> "end" <r:@L> => Struct {decorators, name, members, loc:Loc(l,r) }
 }
 
 Member: Pair = {
@@ -146,7 +146,7 @@ Member: Pair = {
 }
 
 FunctionDef: FunctionDef = {
-   <decorators:DecoratorList>  "func" <name:Id>  <implicit_args:ImplicitArgs?> "("<input_args:IdentifierList>")" newline* <return_values:ReturnArgs?> ":" newline <instructions:CodeBlock> "end" => FunctionDef {decorators, name, implicit_args, input_args, return_values, instructions  }
+   <l:@L> <decorators:DecoratorList>  "func" <name:Id>  <implicit_args:ImplicitArgs?> "("<input_args:IdentifierList>")" newline* <return_values:ReturnArgs?> ":" newline <instructions:CodeBlock> "end"<r:@L>   => FunctionDef {decorators, name, implicit_args, input_args, return_values, instructions, loc:Loc(l,r) }
 }
 
 pub CodeBlock: Vec<Instruction> = {
@@ -159,41 +159,41 @@ CodeLine: Instruction = {
 
 pub CodeElement: Instruction = {
     InstructionBody,
-    <s:InstructionBody> ";" "ap" "++" => Instruction::ApAdd(Box::new(s))
+    <l:@L>  <s:InstructionBody> ";" "ap" "++"  <r:@L>=> Instruction::ApAdd(Box::new(s), Loc(l,r))
 }
 
 InstructionBody: Instruction = {
- ConstantDef => Instruction::Const(<>),
- "member" <ty:TypedIdentifier> => Instruction::Member(ty),
- "let" <binding:RefBinding> "=" <rvalue:RValue> => Instruction::Let(binding, Box::new(rvalue)),
- "local" <ty:TypedIdentifier> <x:AssignExpr?> => Instruction::Local(ty, x),
- "tempvar" <ty:TypedIdentifier> <x:AssignExpr?> => Instruction::Tempvar(ty, x),
- "assert" <lhs:Expr> "=" <rhs:Expr> => Instruction::Assert(lhs, rhs),
- "static_assert" <lhs:Expr> "==" <rhs:Expr> => Instruction::StaticAssert(lhs, rhs),
- <x:ReturnStmt> => Instruction::Return(<>),
- "return" <s:FunctionCall> => Instruction::ReturnFunctionCall(<>),
- IfStatement => Instruction::If(<>),
- Call => Instruction::CallInstruction(<>),
- FunctionCall => Instruction::FunctionCall(<>),
- <s:Identifier> ":" => Instruction::Label(<>),
-<lhs:Expr> "=" <rhs:Expr> => Instruction::Assign(lhs,rhs),
- FunctionDef => Instruction::Function(<>),
- Struct => Instruction::Struct(<>),
- Namespace => Instruction::Namespace(<>),
- WithStatement => Instruction::WithStatement(<>),
- WithAttrStatement => Instruction::WithAttrStatement(<>),
- ImportDirective => Instruction::Import(<>),
- Directive => Instruction::Directive(<>),
- Hint => Instruction::Hint(<>),
- "alloc_locals" => Instruction::AllocLocals,
- Jmp => Instruction::Jmp(<>),
- "ret" => Instruction::Ret,
- "ap" "+=" <x:Expr> => Instruction::ApAddAssign(<>),
- "dw" <x:Expr> => Instruction::DataWord(<>),
+   ConstantDef => Instruction::Const(<>),
+  <l:@L> "member" <ty:TypedIdentifier> <r:@L> => Instruction::Member(ty, Loc(l,r)),
+  <l:@L> "let" <binding:RefBinding> "=" <rvalue:RValue> <r:@L> => Instruction::Let(binding, Box::new(rvalue), Loc(l,r)),
+  <l:@L> "local" <ty:TypedIdentifier> <x:AssignExpr?> <r:@L> => Instruction::Local(ty, x, Loc(l,r)),
+  <l:@L> "tempvar" <ty:TypedIdentifier> <x:AssignExpr?> <r:@L> => Instruction::Tempvar(ty, x, Loc(l,r)),
+  <l:@L> "assert" <lhs:Expr> "=" <rhs:Expr> <r:@L> => Instruction::Assert(lhs, rhs, Loc(l,r)),
+  <l:@L> "static_assert" <lhs:Expr> "==" <rhs:Expr> <r:@L> => Instruction::StaticAssert(lhs, rhs, Loc(l,r)),
+  <l:@L> <x:ReturnStmt> <r:@L> => Instruction::Return(x, Loc(l,r)),
+  <l:@L> "return" <s:FunctionCall> <r:@L> => Instruction::ReturnFunctionCall(s, Loc(l,r)),
+  IfStatement => Instruction::If(<>),
+  Call => Instruction::CallInstruction(<>),
+  FunctionCall => Instruction::FunctionCall(<>),
+  <l:@L> <s:Identifier> ":" <r:@L> => Instruction::Label(s,Loc(l,r)),
+ <l:@L> <lhs:Expr> "=" <rhs:Expr> <r:@L> => Instruction::Assign(lhs,rhs,Loc(l,r)),
+  FunctionDef => Instruction::Function(<>),
+  Struct => Instruction::Struct(<>),
+  Namespace => Instruction::Namespace(<>),
+  WithStatement => Instruction::WithStatement(<>),
+  WithAttrStatement => Instruction::WithAttrStatement(<>),
+  ImportDirective => Instruction::Import(<>),
+  Directive => Instruction::Directive(<>),
+   <l:@L> <h:Hint> <r:@L>  => Instruction::Hint(h, Loc(l,r)),
+  <l:@L> "alloc_locals" <r:@L> => Instruction::AllocLocals(Loc(l,r)),
+  <l:@L> <j:Jmp> <r:@L> => Instruction::Jmp(j, Loc(l,r)),
+  <l:@L> "ret" <r:@L> => Instruction::Ret(Loc(l,r)),
+  <l:@L> "ap" "+=" <x:Expr> <r:@L> => Instruction::ApAddAssign(x, Loc(l,r)),
+  <l:@L> "dw" <x:Expr> <r:@L> => Instruction::DataWord(x, Loc(l,r)),
 }
 
 WithStatement: WithStatement = {
-    "with" <ids:(notes <CommaOne<AliasedId>>)> ":" newline <instructions:CodeBlock> "end" => WithStatement {ids, instructions}
+    <l:@L>  "with" <ids:(notes <CommaOne<AliasedId>>)> ":" newline <instructions:CodeBlock> "end" <r:@L>   => WithStatement {ids, instructions, loc:Loc(l,r)}
 }
 
 StringNotes: String = {
@@ -205,11 +205,11 @@ AttrVal: Vec<String> = {
 }
 
 WithAttrStatement: WithAttrStatement = {
-   "with_attr" <id:Id> <attr_val:AttrVal?> ":" newline <instructions:CodeBlock> "end" => WithAttrStatement {id,attr_val, instructions}
+  <l:@L>  "with_attr" <id:Id> <attr_val:AttrVal?> ":" newline <instructions:CodeBlock> "end" <r:@L>  => WithAttrStatement {id,attr_val, instructions, loc:Loc(l,r) }
 }
 
 FunctionCall: FunctionCall  = {
-   <id:Identifier>  <implicit_args:ImplicitArgsList?> "("<args:ArgList>")"  => FunctionCall{id, implicit_args, args},
+    <l:@L>  <id:Identifier>  <implicit_args:ImplicitArgsList?> "("<args:ArgList>")"  <r:@L>   => FunctionCall{id, implicit_args, args, loc:Loc(l,r) },
 }
 
 RValue: RValue  = {

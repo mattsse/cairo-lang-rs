@@ -65,6 +65,7 @@ impl fmt::Display for CairoFile {
 pub struct AliasedId {
     pub id: String,
     pub alias: Option<String>,
+    pub loc: Loc,
 }
 
 impl fmt::Display for AliasedId {
@@ -231,6 +232,7 @@ pub struct Struct {
     pub decorators: Vec<Decorator>,
     pub name: String,
     pub members: Vec<Pair>,
+    pub loc: Loc,
 }
 
 impl Visitable for Struct {
@@ -255,6 +257,7 @@ pub struct Namespace {
     pub decorators: Vec<Decorator>,
     pub name: String,
     pub instructions: Vec<Instruction>,
+    pub loc: Loc,
 }
 
 impl Visitable for Namespace {
@@ -335,77 +338,77 @@ impl fmt::Display for PointerType {
 /// A cairo expression
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
-    Int(i128),
-    HexInt(String),
-    ShortString(String),
-    Hint(String),
-    Register(Register),
+    Int(i128, Loc),
+    HexInt(String, Loc),
+    ShortString(String, Loc),
+    Hint(String, Loc),
+    Register(Register, Loc),
     FunctionCall(FunctionCall),
-    Id(Identifier),
-    Deref(Box<Expr>),
-    Subscript(Box<Expr>, Box<Expr>),
-    Dot(Box<Expr>, String),
-    Cast(Box<Expr>, Type),
-    Parentheses(Vec<ExprAssignment>),
-    Address(Box<Expr>),
-    Neg(Box<Expr>),
-    Pow(Box<Expr>, Box<Expr>),
-    Mul(Box<Expr>, Box<Expr>),
-    Div(Box<Expr>, Box<Expr>),
-    Add(Box<Expr>, Box<Expr>),
-    Sub(Box<Expr>, Box<Expr>),
+    Id(Identifier, Loc),
+    Deref(Box<Expr>, Loc),
+    Subscript(Box<Expr>, Box<Expr>, Loc),
+    Dot(Box<Expr>, String, Loc),
+    Cast(Box<Expr>, Type, Loc),
+    Parentheses(Vec<ExprAssignment>, Loc),
+    Address(Box<Expr>, Loc),
+    Neg(Box<Expr>, Loc),
+    Pow(Box<Expr>, Box<Expr>, Loc),
+    Mul(Box<Expr>, Box<Expr>, Loc),
+    Div(Box<Expr>, Box<Expr>, Loc),
+    Add(Box<Expr>, Box<Expr>, Loc),
+    Sub(Box<Expr>, Box<Expr>, Loc),
 }
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Int(expr) => expr.fmt(f),
-            Expr::HexInt(expr) => expr.fmt(f),
-            Expr::ShortString(expr) => {
+            Expr::Int(expr, _) => expr.fmt(f),
+            Expr::HexInt(expr, _) => expr.fmt(f),
+            Expr::ShortString(expr, _) => {
                 write!(f, "'{}'", expr)
             }
-            Expr::Hint(expr) => {
+            Expr::Hint(expr, _) => {
                 write!(f, "nondet %{{{}%}}", expr)
             }
-            Expr::Register(expr) => expr.fmt(f),
+            Expr::Register(expr, _) => expr.fmt(f),
             Expr::FunctionCall(expr) => expr.fmt(f),
-            Expr::Id(expr) => puncuated(expr, f),
-            Expr::Deref(expr) => {
+            Expr::Id(expr, _) => puncuated(expr, f),
+            Expr::Deref(expr, _) => {
                 write!(f, "[{}]", expr)
             }
-            Expr::Subscript(lhs, rhs) => {
+            Expr::Subscript(lhs, rhs, _) => {
                 write!(f, "{} [{}]", lhs, rhs)
             }
-            Expr::Dot(lhs, rhs) => {
+            Expr::Dot(lhs, rhs, _) => {
                 write!(f, "{}.{}", lhs, rhs)
             }
-            Expr::Cast(lhs, rhs) => {
+            Expr::Cast(lhs, rhs, _) => {
                 write!(f, "cast({}, {})", lhs, rhs)
             }
-            Expr::Parentheses(expr) => {
+            Expr::Parentheses(expr, _) => {
                 f.write_char('(')?;
                 comma_separated(expr, f)?;
                 f.write_char(')')
             }
-            Expr::Address(expr) => {
+            Expr::Address(expr, _) => {
                 write!(f, "&{}", expr)
             }
-            Expr::Neg(expr) => {
+            Expr::Neg(expr, _) => {
                 write!(f, "-{}", expr)
             }
-            Expr::Pow(lhs, rhs) => {
+            Expr::Pow(lhs, rhs, _) => {
                 write!(f, "{}**{}", lhs, rhs)
             }
-            Expr::Mul(lhs, rhs) => {
+            Expr::Mul(lhs, rhs, _) => {
                 write!(f, "{} * {}", lhs, rhs)
             }
-            Expr::Div(lhs, rhs) => {
+            Expr::Div(lhs, rhs, _) => {
                 write!(f, "{} / {}", lhs, rhs)
             }
-            Expr::Add(lhs, rhs) => {
+            Expr::Add(lhs, rhs, _) => {
                 write!(f, "{} + {}", lhs, rhs)
             }
-            Expr::Sub(lhs, rhs) => {
+            Expr::Sub(lhs, rhs, _) => {
                 write!(f, "{} - {}", lhs, rhs)
             }
         }
@@ -471,6 +474,7 @@ impl fmt::Display for Register {
 pub struct ConstantDef {
     pub name: String,
     pub init: Expr,
+    pub loc: Loc,
 }
 
 impl fmt::Display for ConstantDef {
@@ -522,35 +526,35 @@ impl fmt::Display for TypedIdentifier {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Instruction {
     Const(ConstantDef),
-    Member(TypedIdentifier),
-    Let(RefBinding, Box<RValue>),
-    Local(TypedIdentifier, Option<Expr>),
-    Tempvar(TypedIdentifier, Option<Expr>),
-    Assert(Expr, Expr),
-    StaticAssert(Expr, Expr),
-    Return(Vec<ExprAssignment>),
-    ReturnFunctionCall(FunctionCall),
+    Member(TypedIdentifier, Loc),
+    Let(RefBinding, Box<RValue>, Loc),
+    Local(TypedIdentifier, Option<Expr>, Loc),
+    Tempvar(TypedIdentifier, Option<Expr>, Loc),
+    Assert(Expr, Expr, Loc),
+    StaticAssert(Expr, Expr, Loc),
+    Return(Vec<ExprAssignment>, Loc),
+    ReturnFunctionCall(FunctionCall, Loc),
     If(IfStatement),
-    Label(Identifier),
+    Label(Identifier, Loc),
     Function(FunctionDef),
     FunctionCall(FunctionCall),
     Struct(Struct),
     Namespace(Namespace),
     WithAttrStatement(WithAttrStatement),
     WithStatement(WithStatement),
-    Hint(String),
+    Hint(String, Loc),
     Directive(Directive),
     Import(ImportDirective),
-    AllocLocals,
+    AllocLocals(Loc),
 
     // instruction
-    Assign(Expr, Expr),
-    Jmp(Jmp),
+    Assign(Expr, Expr, Loc),
+    Jmp(Jmp, Loc),
     CallInstruction(Call),
-    Ret,
-    ApAddAssign(Expr),
-    ApAdd(Box<Instruction>),
-    DataWord(Expr),
+    Ret(Loc),
+    ApAddAssign(Expr, Loc),
+    ApAdd(Box<Instruction>, Loc),
+    DataWord(Expr, Loc),
 }
 
 impl Instruction {
@@ -569,32 +573,32 @@ impl Visitable for Instruction {
             Instruction::Const(i) => {
                 i.visit(v)?;
             }
-            Instruction::Member(_) => {}
-            Instruction::Let(id, rvalue) => {
+            Instruction::Member(_, _) => {}
+            Instruction::Let(id, rvalue, _) => {
                 v.visit_let(id, &mut **rvalue)?;
             }
-            Instruction::Local(id, expr) => {
+            Instruction::Local(id, expr, _) => {
                 v.visit_local_var(id, expr)?;
                 id.visit(v)?;
                 if let Some(expr) = expr {
                     v.visit_expr(expr)?;
                 }
             }
-            Instruction::Tempvar(id, expr) => {
+            Instruction::Tempvar(id, expr, _) => {
                 v.visit_temp_var(id, expr)?;
                 id.visit(v)?;
                 if let Some(expr) = expr {
                     v.visit_expr(expr)?;
                 }
             }
-            Instruction::Assert(_, _) => {}
-            Instruction::StaticAssert(_, _) => {}
-            Instruction::Return(_) => {}
-            Instruction::ReturnFunctionCall(_) => {}
+            Instruction::Assert(_, _, _) => {}
+            Instruction::StaticAssert(_, _, _) => {}
+            Instruction::Return(_, _) => {}
+            Instruction::ReturnFunctionCall(_, _) => {}
             Instruction::If(i) => {
                 i.visit(v)?;
             }
-            Instruction::Label(i) => {
+            Instruction::Label(i, _) => {
                 v.visit_label(i)?;
             }
             Instruction::Function(i) => {
@@ -615,19 +619,19 @@ impl Visitable for Instruction {
             Instruction::WithStatement(i) => {
                 i.visit(v)?;
             }
-            Instruction::Hint(_) => {}
+            Instruction::Hint(_, _) => {}
             Instruction::Directive(_) => {}
             Instruction::Import(i) => {
                 i.visit(v)?;
             }
-            Instruction::AllocLocals => {}
-            Instruction::Assign(_, _) => {}
-            Instruction::Jmp(_) => {}
+            Instruction::AllocLocals(_) => {}
+            Instruction::Assign(_, _, _) => {}
+            Instruction::Jmp(_, _) => {}
             Instruction::CallInstruction(_) => {}
-            Instruction::Ret => {}
-            Instruction::ApAddAssign(_) => {}
-            Instruction::ApAdd(_) => {}
-            Instruction::DataWord(_) => {}
+            Instruction::Ret(_) => {}
+            Instruction::ApAddAssign(_, _) => {}
+            Instruction::ApAdd(_, _) => {}
+            Instruction::DataWord(_, _) => {}
         };
         Ok(())
     }
@@ -637,42 +641,42 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Instruction::Const(ins) => ins.fmt(f),
-            Instruction::Member(ins) => {
+            Instruction::Member(ins, _) => {
                 write!(f, "member {}", ins)
             }
-            Instruction::Let(lhs, rhs) => {
+            Instruction::Let(lhs, rhs, _) => {
                 write!(f, "let {} = {}", lhs, rhs)
             }
-            Instruction::Local(lhs, rhs) => {
+            Instruction::Local(lhs, rhs, _) => {
                 write!(f, "local {}", lhs)?;
                 if let Some(rhs) = rhs {
                     write!(f, " = {}", rhs)?;
                 }
                 Ok(())
             }
-            Instruction::Tempvar(lhs, rhs) => {
+            Instruction::Tempvar(lhs, rhs, _) => {
                 write!(f, "tempvar {}", lhs)?;
                 if let Some(rhs) = rhs {
                     write!(f, " = {}", rhs)?;
                 }
                 Ok(())
             }
-            Instruction::Assert(lhs, rhs) => {
+            Instruction::Assert(lhs, rhs, _) => {
                 write!(f, "assert {} = {}", lhs, rhs)
             }
-            Instruction::StaticAssert(lhs, rhs) => {
+            Instruction::StaticAssert(lhs, rhs, _) => {
                 write!(f, "static_assert {} == {}", lhs, rhs)
             }
-            Instruction::Return(ins) => {
+            Instruction::Return(ins, _) => {
                 f.write_str("return(")?;
                 comma_separated(ins, f)?;
                 f.write_char(')')
             }
-            Instruction::ReturnFunctionCall(ins) => {
+            Instruction::ReturnFunctionCall(ins, _) => {
                 write!(f, "return {}", ins)
             }
             Instruction::If(ins) => ins.fmt(f),
-            Instruction::Label(ins) => {
+            Instruction::Label(ins, _) => {
                 puncuated(ins, f)?;
                 f.write_char(':')
             }
@@ -682,25 +686,25 @@ impl fmt::Display for Instruction {
             Instruction::Namespace(ins) => ins.fmt(f),
             Instruction::WithAttrStatement(ins) => ins.fmt(f),
             Instruction::WithStatement(ins) => ins.fmt(f),
-            Instruction::Hint(ins) => {
+            Instruction::Hint(ins, _) => {
                 write!(f, "%{{{}%}}", ins)
             }
             Instruction::Directive(ins) => ins.fmt(f),
             Instruction::Import(ins) => ins.fmt(f),
-            Instruction::AllocLocals => f.write_str("alloc_locals"),
-            Instruction::Assign(lhs, rhs) => {
+            Instruction::AllocLocals(_) => f.write_str("alloc_locals"),
+            Instruction::Assign(lhs, rhs, _) => {
                 write!(f, "{} = {}", lhs, rhs)
             }
-            Instruction::Jmp(ins) => ins.fmt(f),
+            Instruction::Jmp(ins, _) => ins.fmt(f),
             Instruction::CallInstruction(ins) => ins.fmt(f),
-            Instruction::Ret => f.write_str("ret"),
-            Instruction::ApAddAssign(ins) => {
+            Instruction::Ret(_) => f.write_str("ret"),
+            Instruction::ApAddAssign(ins, _) => {
                 write!(f, "ap+={}", ins)
             }
-            Instruction::ApAdd(ins) => {
+            Instruction::ApAdd(ins, _) => {
                 write!(f, "{}; ap ++", ins)
             }
-            Instruction::DataWord(ins) => {
+            Instruction::DataWord(ins, _) => {
                 write!(f, "dw {}", ins)
             }
         }
@@ -809,6 +813,7 @@ impl fmt::Display for Jmp {
 pub struct WithStatement {
     pub ids: Vec<AliasedId>,
     pub instructions: Vec<Instruction>,
+    pub loc: Loc,
 }
 
 impl Visitable for WithStatement {
@@ -833,6 +838,7 @@ pub struct WithAttrStatement {
     pub id: String,
     pub attr_val: Option<Vec<String>>,
     pub instructions: Vec<Instruction>,
+    pub loc: Loc,
 }
 
 impl fmt::Display for WithAttrStatement {
@@ -882,6 +888,7 @@ pub struct FunctionDef {
     pub input_args: Vec<TypedIdentifier>,
     pub return_values: Option<Vec<TypedIdentifier>>,
     pub instructions: Vec<Instruction>,
+    pub loc: Loc,
 }
 
 impl Visitable for FunctionDef {
@@ -918,6 +925,7 @@ pub struct FunctionCall {
     pub id: Identifier,
     pub implicit_args: Option<Vec<ExprAssignment>>,
     pub args: Vec<ExprAssignment>,
+    pub loc: Loc,
 }
 
 impl fmt::Display for FunctionCall {
@@ -953,6 +961,7 @@ pub struct IfStatement {
     pub else_branch: Option<Vec<Instruction>>,
     pub label_neq: Option<String>,
     pub label_end: Option<String>,
+    pub loc: Loc,
 }
 
 impl Visitable for IfStatement {
