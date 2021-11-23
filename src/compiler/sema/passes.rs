@@ -4,10 +4,11 @@ use crate::error::Result;
 use ethers::core::k256::U256;
 use std::fmt;
 
+mod directives;
 mod identifier;
 mod import;
 mod label;
-mod directives;
+mod preprocess;
 
 /// A manager for running passes
 #[derive(Debug)]

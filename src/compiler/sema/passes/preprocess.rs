@@ -5,15 +5,19 @@ use crate::{
     },
     error::Result,
 };
+use std::collections::HashSet;
 
 #[derive(Debug)]
-pub struct DirectivesCollectorPass {}
+pub struct PreprocessPass {
+    /// A set of decorators that may appear before a function declaration
+    pub supported_decorators: HashSet<String>,
+}
 
-impl DirectivesCollectorPass {}
+impl PreprocessPass {}
 
-impl Pass for DirectivesCollectorPass {
+impl Pass for PreprocessPass {
     fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
-        log::trace!("starting pass: Directives Collector");
+        log::trace!("starting pass: Preprocess");
         for module in prg.modules.iter_mut() {
             module.cairo_file.visit(self)?;
         }
@@ -21,4 +25,4 @@ impl Pass for DirectivesCollectorPass {
     }
 }
 
-impl Visitor for DirectivesCollectorPass {}
+impl Visitor for PreprocessPass {}

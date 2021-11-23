@@ -70,11 +70,9 @@ where
 
     // preprocess the cairo program
     let mut prg = PreprocessedProgram::new(main_scope, codes);
-
     // execute all compiler passes
     pass_manager.run_on(&mut prg)?;
-    // assemble the cairo program
-
+    // TODO assemble the cairo program
     todo!()
 }
 

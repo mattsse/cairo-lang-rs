@@ -1,10 +1,13 @@
 use crate::{
+    compiler::sema::{ast::LangVisitor, identifiers::Identifiers},
+    error::Result,
     parser::ast::{Builtin, Identifier},
     CairoFile,
 };
-use std::{borrow::Cow, path::PathBuf};
+use std::{borrow::Cow, path::PathBuf, rc::Rc};
 
 pub mod ast;
+pub mod identifiers;
 pub mod passes;
 
 #[derive(Debug, Clone)]
@@ -58,18 +61,19 @@ impl PreprocessedProgram {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct Identifiers {}
-
 #[derive(Debug, Clone)]
 pub struct CairoModule {
-    pub module_name: ScopedName,
+    pub module_name: Rc<ScopedName>,
     pub cairo_file: CairoFile,
 }
 
 impl CairoModule {
     pub fn new(module_name: ScopedName, cairo_file: CairoFile) -> Self {
-        Self { module_name, cairo_file }
+        Self { module_name: Rc::new(module_name), cairo_file }
+    }
+
+    pub fn lang(&mut self) -> Result<Option<String>> {
+        LangVisitor::lang(&mut self.cairo_file)
     }
 }
 
@@ -92,4 +96,12 @@ impl ScopedName {
     pub fn last(&self) -> Option<&String> {
         self.0.last()
     }
+
+    pub fn push(&mut self, name: String) {
+        self.0.push(name)
+    }
+
+    // ARGUMENT_SCOPE = ScopedName.from_string("Args")
+    // IMPLICIT_ARGUMENT_SCOPE = ScopedName.from_string("ImplicitArgs")
+    // RETURN_SCOPE = ScopedName.from_string("Return")
 }

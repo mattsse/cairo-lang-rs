@@ -233,6 +233,12 @@ pub struct Struct {
     pub members: Vec<Pair>,
 }
 
+impl Visitable for Struct {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_struct_def(self)
+    }
+}
+
 impl fmt::Display for Struct {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt_trailing_newline(&self.decorators, f)?;
@@ -249,6 +255,13 @@ pub struct Namespace {
     pub decorators: Vec<Decorator>,
     pub name: String,
     pub instructions: Vec<Instruction>,
+}
+
+impl Visitable for Namespace {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_namespace(self)?;
+        self.instructions.visit(v)
+    }
 }
 
 impl fmt::Display for Namespace {
@@ -585,13 +598,23 @@ impl Visitable for Instruction {
                 v.visit_label(i)?;
             }
             Instruction::Function(i) => {
+                v.enter_function(i)?;
                 i.visit(v)?;
+                v.exit_function(i)?;
             }
             Instruction::FunctionCall(_) => {}
-            Instruction::Struct(_) => {}
-            Instruction::Namespace(_) => {}
+            Instruction::Struct(i) => {
+                i.visit(v)?;
+            }
+            Instruction::Namespace(i) => {
+                v.enter_namespace(i)?;
+                i.visit(v)?;
+                v.exit_namespace(i)?;
+            }
             Instruction::WithAttrStatement(_) => {}
-            Instruction::WithStatement(_) => {}
+            Instruction::WithStatement(i) => {
+                i.visit(v)?;
+            }
             Instruction::Hint(_) => {}
             Instruction::Directive(_) => {}
             Instruction::Import(i) => {
@@ -786,6 +809,13 @@ impl fmt::Display for Jmp {
 pub struct WithStatement {
     pub ids: Vec<AliasedId>,
     pub instructions: Vec<Instruction>,
+}
+
+impl Visitable for WithStatement {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_with(self)?;
+        self.instructions.visit(v)
+    }
 }
 
 impl fmt::Display for WithStatement {

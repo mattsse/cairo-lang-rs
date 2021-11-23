@@ -20,6 +20,10 @@ pub enum CairoError {
     Message(String),
     #[error("{0}")]
     InvalidImport(String),
+    #[error("{0}")]
+    Identifier(String),
+    #[error("{0}")]
+    Preprocess(String),
 }
 
 impl CairoError {

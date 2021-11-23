@@ -2,7 +2,9 @@ use crate::{
     compiler::{
         module_reader::CodeReader,
         sema::{
-            ast::Visitor, passes::Pass, CairoContent, CairoModule, PreprocessedProgram, ScopedName,
+            ast::{LangVisitor, Visitor},
+            passes::Pass,
+            CairoContent, CairoModule, PreprocessedProgram, ScopedName,
         },
         ModuleReader, VResult, Visitable,
     },
@@ -156,29 +158,6 @@ impl DirectDependenciesCollector {
 impl Visitor for DirectDependenciesCollector {
     fn visit_import(&mut self, import: &mut ImportDirective) -> VResult {
         self.0.push(import.name());
-        Ok(())
-    }
-}
-
-/// A visitor that returns the %lang directive of a cairo file
-#[derive(Default)]
-struct LangVisitor(Option<String>);
-
-impl LangVisitor {
-    fn lang(file: &mut CairoFile) -> Result<Option<String>> {
-        let mut lang = Self::default();
-        file.visit(&mut lang)?;
-        Ok(lang.0)
-    }
-}
-
-impl Visitor for LangVisitor {
-    fn visit_lang(&mut self, id: &mut Identifier) -> VResult {
-        let id = id.join(".");
-        if self.0.is_some() {
-            return Err(CairoError::msg(format!("Found two %lang directives {}", id)))
-        }
-        self.0 = Some(id);
         Ok(())
     }
 }
