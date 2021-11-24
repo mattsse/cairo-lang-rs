@@ -30,7 +30,7 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn visit_label(&mut self, _: &mut Identifier, loc: Loc) -> VResult {
+    fn visit_label(&mut self, _: &mut Identifier, _loc: Loc) -> VResult {
         Ok(())
     }
 
@@ -46,7 +46,25 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn visit_let(&mut self, _: &mut RefBinding, _: &mut RValue) -> VResult {
+    fn visit_reference(&mut self, b: &mut RefBinding, rvalue: &mut RValue) -> VResult {
+        match b {
+            RefBinding::Id(ty) => match rvalue {
+                RValue::Call(call) => self.visit_return_value_reference(ty, call),
+                RValue::Expr(expr) => self.visit_element_reference(ty, expr),
+            },
+            RefBinding::List(ty) => self.visit_unpack_binding(ty, rvalue),
+        }
+    }
+
+    fn visit_unpack_binding(&mut self, _: &mut [TypedIdentifier], _: &mut RValue) -> VResult {
+        Ok(())
+    }
+
+    fn visit_return_value_reference(&mut self, _: &mut TypedIdentifier, _: &mut Call) -> VResult {
+        Ok(())
+    }
+
+    fn visit_element_reference(&mut self, _: &mut TypedIdentifier, _: &mut Expr) -> VResult {
         Ok(())
     }
 

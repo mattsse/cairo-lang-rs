@@ -93,18 +93,6 @@ impl ScopedName {
         Self::from_str("SIZE")
     }
 
-    pub fn return_scope() -> Self {
-        Self::from_str("Return")
-    }
-
-    pub fn implicit_args_scope() -> Self {
-        Self::from_str("ImplicitArgs")
-    }
-
-    pub fn args_scope() -> Self {
-        Self::from_str("Args")
-    }
-
     /// The root scope, an empty scope
     pub fn root() -> Self {
         ScopedName(Default::default())

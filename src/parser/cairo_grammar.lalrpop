@@ -266,8 +266,8 @@ Pair: Pair = {
 }
 
 TypedIdentifier: TypedIdentifier  = {
-  "local" <id:Id> <ty:TypeHint?> => TypedIdentifier{is_local: true, id, ty },
-   <id:Id> <ty:TypeHint?> => TypedIdentifier{is_local: false, id, ty },
+  <l:@L> "local" <id:Id> <ty:TypeHint?> <r:@L> => TypedIdentifier{is_local: true, id, ty, loc:Loc(l,r) },
+  <l:@L>  <id:Id> <ty:TypeHint?> <r:@L>=> TypedIdentifier{is_local: false, id, ty, loc:Loc(l,r) },
 }
 
 RefBinding: RefBinding = {

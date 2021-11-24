@@ -6,6 +6,13 @@ pub const START_FILE_NAME: &str = "<start>";
 
 pub const CAIRO_FILE_EXTENSION: &str = ".cairo";
 
+pub const N_LOCALS_CONSTANT: &str = "SIZEOF_LOCALS";
+
+pub const ARG_SCOPE: &str = "Args";
+pub const IMPLICIT_ARG_SCOPE: &str = "ImplicitArgs";
+
+pub const RETURN_SCOPE: &str = "Return";
+
 // 2 ** 251 + 17 * 2 ** 192 + 1
 pub const DEFAULT_PRIME: U256 = U256([1, 0, 0, 576460752303423505]);
 

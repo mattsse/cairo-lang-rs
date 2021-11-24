@@ -1,5 +1,6 @@
 use crate::{
     compiler::{
+        constants::{ARG_SCOPE, IMPLICIT_ARG_SCOPE, N_LOCALS_CONSTANT, RETURN_SCOPE},
         sema::{
             ast::ScopeTracker, identifiers::IdentifierDefinitionType, passes::Pass, Identifiers,
             PreprocessedProgram, ScopedName,
@@ -9,6 +10,7 @@ use crate::{
     error::{CairoError, Result},
     parser::ast::*,
 };
+use std::collections::HashSet;
 
 /// Resolves identifiers for cairo code elements.
 #[derive(Debug)]
@@ -26,11 +28,6 @@ impl Pass for IdentifierCollectorPass {
 
             let mut visitor =
                 IdVisitor { identifiers: &mut prg.identifiers, scope_tracker: &mut scope_tracker };
-
-            // TODO store the full name directly in the AST use a hashmap to track potential
-            // duplicates  need to add pub fullname: Option<ScopedNamed> to various AST
-            // type, and also store in prg identifiers
-
             module.cairo_file.visit(&mut visitor)?;
 
             scope_tracker.exit_scope();
@@ -61,10 +58,10 @@ impl<'a> IdVisitor<'a> {
     ) -> VResult {
         if let Some(existing_def) = self.identifiers.get_by_full_name(&name) {
             if !existing_def.is_unresolved() || !ty.is_unresolved() {
-                return Err(CairoError::Preprocess(format!("Redefinition of {} at {:?}", name, loc)))
+                return Err(CairoError::Preprocess(format!("Redefinition of {} at {}", name, loc)))
             }
             if !existing_def.is_reference() || !ty.is_reference() {
-                return Err(CairoError::Preprocess(format!("Redefinition of {} at {:?}", name, loc)))
+                return Err(CairoError::Preprocess(format!("Redefinition of {} at {}", name, loc)))
             }
         }
         self.identifiers.add_identifier(name, ty);
@@ -79,15 +76,51 @@ impl<'a> IdVisitor<'a> {
     ) -> VResult {
         self.add_identifier(name, IdentifierDefinitionType::Unresolved(Box::new(ty)), loc)
     }
+
+    fn handle_function_arguments(
+        &mut self,
+        function_scope: ScopedName,
+        identifier_list: &[TypedIdentifier],
+        loc: Loc,
+    ) -> VResult {
+        self.add_unresolved_identifier(
+            function_scope.clone(),
+            IdentifierDefinitionType::Struct,
+            loc,
+        )?;
+
+        for arg_id in identifier_list {
+            if arg_id.id == N_LOCALS_CONSTANT {
+                return Err(CairoError::Preprocess(format!(
+                    "The name {} is reserved and cannot be used as argument {}",
+                    N_LOCALS_CONSTANT, arg_id.loc
+                )))
+            }
+            self.add_unresolved_identifier(
+                function_scope.clone().appended(arg_id.id.clone()),
+                IdentifierDefinitionType::Reference,
+                arg_id.loc,
+            )?;
+        }
+        Ok(())
+    }
 }
 
 impl<'a> Visitor for IdVisitor<'a> {
-    fn visit_const_def(&mut self, _: &mut ConstantDef) -> VResult {
-        Ok(())
+    fn visit_const_def(&mut self, c: &mut ConstantDef) -> VResult {
+        self.add_unresolved_identifier(
+            self.current_identifier(c.name.clone()),
+            IdentifierDefinitionType::ConstDef,
+            c.loc,
+        )
     }
 
-    fn visit_struct_def(&mut self, _: &mut Struct) -> VResult {
-        Ok(())
+    fn visit_struct_def(&mut self, s: &mut Struct) -> VResult {
+        self.add_unresolved_identifier(
+            self.current_identifier(s.name.clone()),
+            IdentifierDefinitionType::Struct,
+            s.loc,
+        )
     }
 
     fn visit_with(&mut self, el: &mut WithStatement) -> VResult {
@@ -104,17 +137,38 @@ impl<'a> Visitor for IdVisitor<'a> {
     }
 
     fn visit_label(&mut self, id: &mut Identifier, loc: Loc) -> VResult {
-        // self.add_identifier(
-        //     self.current_identifier(item.id.clone()),
-        //     IdentifierDefinitionType::Alias(alias_dest),
-        //     el.loc,
-        // )
+        self.add_unresolved_identifier(
+            self.current_identifier(id.join(".")),
+            IdentifierDefinitionType::Label,
+            loc,
+        )
+    }
 
+    fn visit_unpack_binding(&mut self, ids: &mut [TypedIdentifier], _: &mut RValue) -> VResult {
+        for id in ids.iter().filter(|s| s.id != "_") {
+            self.add_unresolved_identifier(
+                self.current_identifier(id.id.clone()),
+                IdentifierDefinitionType::Reference,
+                id.loc,
+            )?;
+        }
         Ok(())
     }
 
-    fn visit_let(&mut self, _: &mut RefBinding, _: &mut RValue) -> VResult {
-        Ok(())
+    fn visit_return_value_reference(&mut self, id: &mut TypedIdentifier, _: &mut Call) -> VResult {
+        self.add_unresolved_identifier(
+            self.current_identifier(id.id.clone()),
+            IdentifierDefinitionType::Reference,
+            id.loc,
+        )
+    }
+
+    fn visit_element_reference(&mut self, id: &mut TypedIdentifier, _: &mut Expr) -> VResult {
+        self.add_unresolved_identifier(
+            self.current_identifier(id.id.clone()),
+            IdentifierDefinitionType::Reference,
+            id.loc,
+        )
     }
 
     fn visit_import(&mut self, el: &mut ImportDirective) -> VResult {
@@ -139,8 +193,47 @@ impl<'a> Visitor for IdVisitor<'a> {
         self.scope_tracker.enter_function(f)
     }
 
-    fn visit_function(&mut self, _import: &mut FunctionDef) -> VResult {
-        Ok(())
+    fn visit_function(&mut self, fun: &mut FunctionDef) -> VResult {
+        let function_scope = self.current_identifier(fun.name.clone());
+
+        self.add_unresolved_identifier(
+            function_scope.clone(),
+            IdentifierDefinitionType::Function,
+            fun.loc,
+        )?;
+
+        let arg_scope = function_scope.clone().appended(ARG_SCOPE);
+        let return_scope = function_scope.clone().appended(RETURN_SCOPE);
+
+        self.handle_function_arguments(arg_scope, &fun.input_args, fun.loc)?;
+
+        if let Some(ref implicit) = fun.implicit_args {
+            let implicit_arg_scope = function_scope.clone().appended(IMPLICIT_ARG_SCOPE);
+            self.handle_function_arguments(implicit_arg_scope, implicit, fun.loc)?;
+        }
+
+        self.add_unresolved_identifier(return_scope, IdentifierDefinitionType::Struct, fun.loc)?;
+
+        // ensure there is no name collision
+        if let Some(ref implicit) = fun.implicit_args {
+            let implicit_arg_names = implicit.iter().map(|arg| &arg.id).collect::<HashSet<_>>();
+            let mut arg_and_return_identifiers =
+                fun.implicit_args.iter().flat_map(|i| i.iter()).collect::<Vec<_>>();
+            if let Some(ref returns) = fun.return_values {
+                arg_and_return_identifiers.extend(returns);
+            }
+            for arg_id in arg_and_return_identifiers {
+                if implicit_arg_names.contains(&arg_id.id) {
+                    return Err(CairoError::Preprocess(format!("Arguments and return values cannot have the same name of an implicit argument at {}", arg_id.loc)))
+                }
+            }
+        }
+
+        self.add_unresolved_identifier(
+            function_scope.appended(N_LOCALS_CONSTANT),
+            IdentifierDefinitionType::ConstDef,
+            fun.loc,
+        )
     }
 
     fn exit_function(&mut self, f: &mut FunctionDef) -> VResult {
@@ -149,6 +242,28 @@ impl<'a> Visitor for IdVisitor<'a> {
 
     fn enter_namespace(&mut self, n: &mut Namespace) -> VResult {
         self.scope_tracker.enter_namespace(n)
+    }
+
+    fn visit_namespace(&mut self, ns: &mut Namespace) -> VResult {
+        let function_scope = self.current_identifier(ns.name.clone());
+
+        self.add_unresolved_identifier(
+            function_scope.clone(),
+            IdentifierDefinitionType::Function,
+            ns.loc,
+        )?;
+        let arg_scope = function_scope.clone().appended(ARG_SCOPE);
+        let return_scope = function_scope.clone().appended(RETURN_SCOPE);
+
+        self.handle_function_arguments(arg_scope, &[], ns.loc)?;
+
+        self.add_unresolved_identifier(return_scope, IdentifierDefinitionType::Struct, ns.loc)?;
+
+        self.add_unresolved_identifier(
+            function_scope.appended(N_LOCALS_CONSTANT),
+            IdentifierDefinitionType::ConstDef,
+            ns.loc,
+        )
     }
 
     fn exit_namespace(&mut self, n: &mut Namespace) -> VResult {
@@ -170,11 +285,19 @@ impl<'a> Visitor for IdVisitor<'a> {
         )
     }
 
-    fn visit_local_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
-        Ok(())
+    fn visit_local_var(&mut self, id: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        self.add_unresolved_identifier(
+            self.current_identifier(id.id.clone()),
+            IdentifierDefinitionType::Reference,
+            id.loc,
+        )
     }
 
-    fn visit_temp_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
-        Ok(())
+    fn visit_temp_var(&mut self, id: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        self.add_unresolved_identifier(
+            self.current_identifier(id.id.clone()),
+            IdentifierDefinitionType::Reference,
+            id.loc,
+        )
     }
 }

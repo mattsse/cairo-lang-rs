@@ -16,6 +16,12 @@ use std::{
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct Loc(pub usize, pub usize);
 
+impl fmt::Display for Loc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.0, self.1)
+    }
+}
+
 // [a-zA-Z_][\w_]+?
 pub type IDStr = String;
 
@@ -509,6 +515,7 @@ pub struct TypedIdentifier {
     pub is_local: bool,
     pub id: String,
     pub ty: Option<Type>,
+    pub loc: Loc,
 }
 
 impl Visitable for TypedIdentifier {
@@ -588,7 +595,7 @@ impl Visitable for Instruction {
             }
             Instruction::Member(_, _) => {}
             Instruction::Let(id, rvalue, _) => {
-                v.visit_let(id, &mut **rvalue)?;
+                v.visit_reference(id, &mut **rvalue)?;
             }
             Instruction::Local(id, expr, _) => {
                 v.visit_local_var(id, expr)?;

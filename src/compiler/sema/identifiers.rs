@@ -43,8 +43,36 @@ impl Identifiers {
         Ok(resolved)
     }
 
+    /// Attempts to find the scope with the given name, by resolving aliases
     pub fn get_scope(&self, name: &ScopedName) -> Result<&Scope> {
-        todo!()
+        let mut visited_identifiers = HashSet::<ScopedName>::default();
+        let mut current_identifier = name.clone();
+        loop {
+            if visited_identifiers.contains(&current_identifier) {
+                break
+            }
+            visited_identifiers.insert(current_identifier.clone());
+
+            match self.root.get_scope(&current_identifier) {
+                scope @ Ok(_) => return scope,
+                Err(CairoError::NotScope(scope, rem, ty)) => {
+                    if let IdentifierDefinitionType::Alias(destination) = ty {
+                        if let Some(rem) = rem {
+                            current_identifier = destination.appended(rem.to_string());
+                        } else {
+                            current_identifier = destination;
+                        }
+                    } else {
+                        return Err(CairoError::NotScope(scope, rem, ty))
+                    }
+                }
+                err => return err,
+            }
+        }
+        Err(CairoError::Identifier(format!(
+            "Alias resultion failed {:?}, {}",
+            visited_identifiers, current_identifier
+        )))
     }
 
     /// Returns the definition of an identifier
@@ -126,11 +154,11 @@ impl Scope {
 
         let full_name = self.full_name.clone().appended(name.clone());
 
-        if !self.identifiers.contains_key(&name) {
-            return Err(CairoError::MissingIdentifier(full_name))
+        if let Some(ty) = self.identifiers.get(&name).cloned() {
+            Err(CairoError::NotScope(full_name, rem, ty.as_ref().clone()))
+        } else {
+            Err(CairoError::MissingIdentifier(full_name))
         }
-
-        Err(CairoError::NotScope(full_name))
     }
 
     fn add_subscope(&mut self, name: String) {
@@ -176,6 +204,9 @@ pub enum IdentifierDefinitionType {
     Label,
     Reference,
     LocalVar,
+    Function,
+    Namespace,
+    Struct,
     TempVar,
     RValueRef,
     Alias(ScopedName),
