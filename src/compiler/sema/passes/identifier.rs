@@ -1,12 +1,14 @@
 use crate::{
     compiler::{
-        sema::{ast::ScopeTracker, passes::Pass, Identifiers, PreprocessedProgram, ScopedName},
+        sema::{
+            ast::ScopeTracker, identifiers::IdentifierDefinitionType, passes::Pass, Identifiers,
+            PreprocessedProgram, ScopedName,
+        },
         VResult, Visitable, Visitor,
     },
-    error::Result,
+    error::{CairoError, Result},
     parser::ast::*,
 };
-
 
 /// Resolves identifiers for cairo code elements.
 #[derive(Debug)]
@@ -46,8 +48,12 @@ struct IdVisitor<'a> {
 }
 
 impl<'a> IdVisitor<'a> {
-    fn get_identifier(&self, identifier: String) -> ScopedName {
+    fn current_identifier(&self, identifier: String) -> ScopedName {
         self.scope_tracker.next_scope(identifier)
+    }
+
+    fn add_identifier(&mut self, name: ScopedName, ty: IdentifierDefinitionType) {
+        self.identifiers.add_identifier(name, ty)
     }
 }
 
@@ -68,7 +74,19 @@ impl<'a> Visitor for IdVisitor<'a> {
         Ok(())
     }
 
-    fn visit_import(&mut self, _: &mut ImportDirective) -> VResult {
+    fn visit_import(&mut self, el: &mut ImportDirective) -> VResult {
+        for item in el.aliased_identifier() {
+            let alias_dest = ScopedName::new(el.path.clone()).appended(item.id.clone());
+
+            if self.identifiers.get_by_full_name(&alias_dest).is_none() {
+                let _ = self.identifiers.get_scope(&alias_dest)?;
+            }
+
+            self.add_identifier(
+                self.current_identifier(item.id.clone()),
+                IdentifierDefinitionType::Alias(alias_dest),
+            );
+        }
         Ok(())
     }
 
@@ -90,6 +108,26 @@ impl<'a> Visitor for IdVisitor<'a> {
 
     fn exit_namespace(&mut self, n: &mut Namespace) -> VResult {
         self.scope_tracker.exit_namespace(n)
+    }
+
+    fn visit_if(&mut self, el: &mut IfStatement) -> VResult {
+        let label_neq = el.label_neq.clone().ok_or(CairoError::MissingLabel(el.loc))?;
+        let label_end = el.label_end.clone().ok_or(CairoError::MissingLabel(el.loc))?;
+        self.add_identifier(self.current_identifier(label_neq), IdentifierDefinitionType::Label);
+        self.add_identifier(self.current_identifier(label_end), IdentifierDefinitionType::Label);
+        Ok(())
+    }
+
+    fn visit_with(&mut self, el: &mut WithStatement) -> VResult {
+        for id in &el.ids {
+            if let Some(alias) = id.alias.clone() {
+                self.add_identifier(
+                    self.current_identifier(alias),
+                    IdentifierDefinitionType::Reference,
+                );
+            }
+        }
+        Ok(())
     }
 
     fn visit_local_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {

@@ -43,6 +43,10 @@ impl Identifiers {
         Ok(resolved)
     }
 
+    pub fn get_scope(&self, name: &ScopedName) -> Result<&Scope> {
+        todo!()
+    }
+
     /// Returns the definition of an identifier
     ///
     /// NOTE: no aliasing at this point
@@ -174,12 +178,12 @@ pub enum IdentifierDefinitionType {
     LocalVar,
     TempVar,
     RValueRef,
-    Alias,
+    Alias(ScopedName),
 }
 
 impl IdentifierDefinitionType {
     pub fn is_alias(&self) -> bool {
-        matches!(self, IdentifierDefinitionType::Alias)
+        matches!(self, IdentifierDefinitionType::Alias(_))
     }
 }
 

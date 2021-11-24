@@ -1,7 +1,7 @@
 use crate::parser::lexer::CairoLexerError;
 use std::io;
 
-use crate::compiler::sema::ScopedName;
+use crate::{compiler::sema::ScopedName, parser::ast::Loc};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, CairoError>;
@@ -31,6 +31,8 @@ pub enum CairoError {
     Preprocess(String),
     #[error("`{0}` is not a scope")]
     NotScope(ScopedName),
+    #[error("Expected labeled element:`{0:?}`")]
+    MissingLabel(Loc),
 }
 
 impl CairoError {

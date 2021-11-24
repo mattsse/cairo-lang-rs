@@ -81,6 +81,10 @@ impl CairoModule {
 pub struct ScopedName(Identifier);
 
 impl ScopedName {
+    pub fn new(id: Identifier) -> Self {
+        ScopedName(id)
+    }
+
     pub fn main_scope() -> Self {
         Self::from_str("__main__")
     }

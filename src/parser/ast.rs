@@ -91,6 +91,10 @@ impl ImportDirective {
     pub fn name(&self) -> String {
         self.path.join(".")
     }
+
+    pub fn aliased_identifier(&self) -> &[AliasedId] {
+        self.functions.aliased_identifier()
+    }
 }
 
 impl Visitable for ImportDirective {
@@ -110,6 +114,15 @@ impl fmt::Display for ImportDirective {
 pub enum FunctionImport {
     Direct(Loc, Vec<AliasedId>),
     Parantheses(Loc, Vec<AliasedId>),
+}
+
+impl FunctionImport {
+    pub fn aliased_identifier(&self) -> &[AliasedId] {
+        match self {
+            FunctionImport::Direct(_, ids) => ids,
+            FunctionImport::Parantheses(_, ids) => ids,
+        }
+    }
 }
 
 impl fmt::Display for FunctionImport {

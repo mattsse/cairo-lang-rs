@@ -9,7 +9,7 @@ use crate::{
         ModuleReader, VResult, Visitable,
     },
     error::{CairoError, Result},
-    parser::ast::{ImportDirective},
+    parser::ast::ImportDirective,
     CairoFile,
 };
 use std::{
