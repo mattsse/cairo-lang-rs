@@ -2,7 +2,10 @@ use crate::{
     compiler::sema::ScopedName,
     error::{CairoError, Result},
 };
-use std::{collections::HashMap, rc::Rc};
+use std::{
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 /// Manages a list of identifiers
 #[derive(Debug, Default)]
@@ -17,6 +20,41 @@ impl Identifiers {
         let ty = Rc::new(ty);
         let dest = self.root.add_identifier(name, Rc::clone(&ty));
         self.identifiers.insert(dest, ty);
+    }
+
+    /// Finds the identifier with the given name with aliases
+    pub fn get(&self, name: &ScopedName) -> Result<ResolvedIdentifier> {
+        let current_identifier = name.clone();
+        let mut visited_identifiers = HashSet::from([current_identifier.clone()]);
+
+        let mut resolved = self.root.get(&current_identifier)?;
+        // resolve alias
+        while resolved.ty.is_alias() {
+            // check for cycles
+            if visited_identifiers.contains(&current_identifier) {
+                return Err(CairoError::Identifier(format!(
+                    "Cyclic aliasing detected: {:?} {}",
+                    visited_identifiers, current_identifier
+                )))
+            }
+            visited_identifiers.insert(current_identifier.clone());
+            resolved = self.root.get(&current_identifier)?;
+        }
+        Ok(resolved)
+    }
+
+    /// Returns the definition of an identifier
+    ///
+    /// NOTE: no aliasing at this point
+    pub fn get_by_full_name(&self, name: &ScopedName) -> Option<Rc<IdentifierDefinitionType>> {
+        if name.is_empty() {
+            return None
+        }
+        let resolved = self.root.get(name).ok()?;
+        if resolved.rem.is_some() {
+            return None
+        }
+        Some(resolved.ty)
     }
 }
 
@@ -34,6 +72,28 @@ pub struct Scope {
 impl Scope {
     pub fn new(full_name: ScopedName) -> Self {
         Self { full_name, subscopes: Default::default(), identifiers: Default::default() }
+    }
+
+    /// Returns the identifier with the given name
+    pub fn get(&self, name: &ScopedName) -> Result<ResolvedIdentifier> {
+        let (name, rem) = name.clone().split();
+        let canonical_name = self.full_name.clone().appended(name.clone());
+
+        if let Some(ref rem) = rem {
+            if let Some(scope) = self.get_single_scope(&name) {
+                return scope.get(rem)
+            }
+        }
+
+        if let Some(ty) = self.identifiers.get(&name).cloned() {
+            return Ok(ResolvedIdentifier { ty, canonical_name, rem })
+        }
+
+        if self.subscopes.contains_key(&name) {
+            return Err(CairoError::NotIdentifier(canonical_name))
+        }
+
+        Err(CairoError::MissingIdentifier(canonical_name))
     }
 
     /// Returns the direct child scope by name if it exists
@@ -114,4 +174,18 @@ pub enum IdentifierDefinitionType {
     LocalVar,
     TempVar,
     RValueRef,
+    Alias,
+}
+
+impl IdentifierDefinitionType {
+    pub fn is_alias(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::Alias)
+    }
+}
+
+#[derive(Debug)]
+pub struct ResolvedIdentifier {
+    pub ty: Rc<IdentifierDefinitionType>,
+    pub canonical_name: ScopedName,
+    pub rem: Option<ScopedName>,
 }

@@ -6,7 +6,7 @@ use crate::{
     error::Result,
     parser::ast::*,
 };
-use std::rc::Rc;
+
 
 /// Resolves identifiers for cairo code elements.
 #[derive(Debug)]
@@ -41,6 +41,7 @@ impl Pass for IdentifierCollectorPass {
 /// A scope aware AST visitor that resolves full names of identifiers
 struct IdVisitor<'a> {
     identifiers: &'a mut Identifiers,
+    /// keeps track of the current scope
     scope_tracker: &'a mut ScopeTracker,
 }
 
@@ -55,6 +56,10 @@ impl<'a> Visitor for IdVisitor<'a> {
         Ok(())
     }
 
+    fn visit_struct_def(&mut self, _: &mut Struct) -> VResult {
+        Ok(())
+    }
+
     fn visit_label(&mut self, _: &mut Identifier) -> VResult {
         Ok(())
     }
@@ -63,24 +68,16 @@ impl<'a> Visitor for IdVisitor<'a> {
         Ok(())
     }
 
-    fn visit_local_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
-        Ok(())
-    }
-
-    fn visit_temp_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
-        Ok(())
-    }
-
-    fn visit_function(&mut self, _import: &mut FunctionDef) -> VResult {
-        Ok(())
-    }
-
-    fn visit_struct_def(&mut self, _: &mut Struct) -> VResult {
+    fn visit_import(&mut self, _: &mut ImportDirective) -> VResult {
         Ok(())
     }
 
     fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
         self.scope_tracker.enter_function(f)
+    }
+
+    fn visit_function(&mut self, _import: &mut FunctionDef) -> VResult {
+        Ok(())
     }
 
     fn exit_function(&mut self, f: &mut FunctionDef) -> VResult {
@@ -93,5 +90,13 @@ impl<'a> Visitor for IdVisitor<'a> {
 
     fn exit_namespace(&mut self, n: &mut Namespace) -> VResult {
         self.scope_tracker.exit_namespace(n)
+    }
+
+    fn visit_local_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        Ok(())
+    }
+
+    fn visit_temp_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        Ok(())
     }
 }

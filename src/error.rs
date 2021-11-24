@@ -23,6 +23,10 @@ pub enum CairoError {
     InvalidImport(String),
     #[error("Missing identifier: {0}")]
     MissingIdentifier(ScopedName),
+    #[error("Identifier not found: {0}")]
+    NotIdentifier(ScopedName),
+    #[error("{0}")]
+    Identifier(String),
     #[error("{0}")]
     Preprocess(String),
     #[error("`{0}` is not a scope")]
