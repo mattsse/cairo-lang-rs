@@ -611,8 +611,8 @@ impl Visitable for Instruction {
             Instruction::If(i) => {
                 i.visit(v)?;
             }
-            Instruction::Label(i, _) => {
-                v.visit_label(i)?;
+            Instruction::Label(i, loc) => {
+                v.visit_label(i, *loc)?;
             }
             Instruction::Function(i) => {
                 v.enter_function(i)?;

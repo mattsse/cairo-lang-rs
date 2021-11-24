@@ -179,11 +179,18 @@ pub enum IdentifierDefinitionType {
     TempVar,
     RValueRef,
     Alias(ScopedName),
+    Unresolved(Box<IdentifierDefinitionType>),
 }
 
 impl IdentifierDefinitionType {
     pub fn is_alias(&self) -> bool {
         matches!(self, IdentifierDefinitionType::Alias(_))
+    }
+    pub fn is_reference(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::Reference)
+    }
+    pub fn is_unresolved(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::Unresolved(_))
     }
 }
 

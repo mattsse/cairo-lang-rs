@@ -30,7 +30,7 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn visit_label(&mut self, _: &mut Identifier) -> VResult {
+    fn visit_label(&mut self, _: &mut Identifier, loc: Loc) -> VResult {
         Ok(())
     }
 

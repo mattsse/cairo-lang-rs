@@ -52,8 +52,32 @@ impl<'a> IdVisitor<'a> {
         self.scope_tracker.next_scope(identifier)
     }
 
-    fn add_identifier(&mut self, name: ScopedName, ty: IdentifierDefinitionType) {
-        self.identifiers.add_identifier(name, ty)
+    /// adds an identifier to the underlying
+    fn add_identifier(
+        &mut self,
+        name: ScopedName,
+        ty: IdentifierDefinitionType,
+        loc: Loc,
+    ) -> VResult {
+        if let Some(existing_def) = self.identifiers.get_by_full_name(&name) {
+            if !existing_def.is_unresolved() || !ty.is_unresolved() {
+                return Err(CairoError::Preprocess(format!("Redefinition of {} at {:?}", name, loc)))
+            }
+            if !existing_def.is_reference() || !ty.is_reference() {
+                return Err(CairoError::Preprocess(format!("Redefinition of {} at {:?}", name, loc)))
+            }
+        }
+        self.identifiers.add_identifier(name, ty);
+        Ok(())
+    }
+
+    fn add_unresolved_identifier(
+        &mut self,
+        name: ScopedName,
+        ty: IdentifierDefinitionType,
+        loc: Loc,
+    ) -> VResult {
+        self.add_identifier(name, IdentifierDefinitionType::Unresolved(Box::new(ty)), loc)
     }
 }
 
@@ -66,7 +90,26 @@ impl<'a> Visitor for IdVisitor<'a> {
         Ok(())
     }
 
-    fn visit_label(&mut self, _: &mut Identifier) -> VResult {
+    fn visit_with(&mut self, el: &mut WithStatement) -> VResult {
+        for id in &el.ids {
+            if let Some(alias) = id.alias.clone() {
+                self.add_unresolved_identifier(
+                    self.current_identifier(alias),
+                    IdentifierDefinitionType::Reference,
+                    el.loc,
+                )?;
+            }
+        }
+        Ok(())
+    }
+
+    fn visit_label(&mut self, id: &mut Identifier, loc: Loc) -> VResult {
+        // self.add_identifier(
+        //     self.current_identifier(item.id.clone()),
+        //     IdentifierDefinitionType::Alias(alias_dest),
+        //     el.loc,
+        // )
+
         Ok(())
     }
 
@@ -78,6 +121,7 @@ impl<'a> Visitor for IdVisitor<'a> {
         for item in el.aliased_identifier() {
             let alias_dest = ScopedName::new(el.path.clone()).appended(item.id.clone());
 
+            // ensure destination is a valid id
             if self.identifiers.get_by_full_name(&alias_dest).is_none() {
                 let _ = self.identifiers.get_scope(&alias_dest)?;
             }
@@ -85,7 +129,8 @@ impl<'a> Visitor for IdVisitor<'a> {
             self.add_identifier(
                 self.current_identifier(item.id.clone()),
                 IdentifierDefinitionType::Alias(alias_dest),
-            );
+                el.loc,
+            )?;
         }
         Ok(())
     }
@@ -113,21 +158,16 @@ impl<'a> Visitor for IdVisitor<'a> {
     fn visit_if(&mut self, el: &mut IfStatement) -> VResult {
         let label_neq = el.label_neq.clone().ok_or(CairoError::MissingLabel(el.loc))?;
         let label_end = el.label_end.clone().ok_or(CairoError::MissingLabel(el.loc))?;
-        self.add_identifier(self.current_identifier(label_neq), IdentifierDefinitionType::Label);
-        self.add_identifier(self.current_identifier(label_end), IdentifierDefinitionType::Label);
-        Ok(())
-    }
-
-    fn visit_with(&mut self, el: &mut WithStatement) -> VResult {
-        for id in &el.ids {
-            if let Some(alias) = id.alias.clone() {
-                self.add_identifier(
-                    self.current_identifier(alias),
-                    IdentifierDefinitionType::Reference,
-                );
-            }
-        }
-        Ok(())
+        self.add_unresolved_identifier(
+            self.current_identifier(label_neq),
+            IdentifierDefinitionType::Label,
+            el.loc,
+        )?;
+        self.add_unresolved_identifier(
+            self.current_identifier(label_end),
+            IdentifierDefinitionType::Label,
+            el.loc,
+        )
     }
 
     fn visit_local_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
