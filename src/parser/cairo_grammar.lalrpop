@@ -41,7 +41,7 @@ Atom: Expr = {
     <l:@L> <pre:Atom> "[" notes <x:Expr> "]"  <r:@L>=> Expr::Subscript(Box::new(pre), Box::new(x), Loc(l,r)),
     <l:@L> <id:Identifier> <m:@L> "[" notes <x:Expr> "]" <r:@L> => Expr::Subscript(Box::new(Expr::Id(id, Loc(l,m))), Box::new(x), Loc(l,r)),
     <l:@L> <x:Atom> "." <s:Id> <r:@L> =>  Expr::Dot(Box::new(x), s, Loc(l,r)),
-    <l:@L> "cast" "(" notes <x:Expr> "," <ty:Type> ")" <r:@L> => Expr::Cast(Box::new(x),ty, Loc(l,r)),
+    <l:@L> "cast" "(" notes <x:Expr> "," <ty:CairoType> ")" <r:@L> => Expr::Cast(Box::new(x),ty, Loc(l,r)),
     <l:@L> "(" <args:ArgList> ")"  <r:@L>=> Expr::Parentheses(args, Loc(l,r)),
 }
 
@@ -79,22 +79,22 @@ BoolExpr: BoolExpr = {
    <lhs:Expr> "=="  <rhs:Expr>  => BoolExpr::Equal(lhs, rhs),
 }
 
-Type: Type = {
-    <s:PointerType> => Type::Pointer(Box::new(s)),
-    "felt"  => Type::Felt,
-    <s:Identifier> => Type::Id(<>),
-    "(" <e:Type> <v:("," <Type>)*>  ")" => {
+CairoType: CairoType = {
+    <s:PointerType> => CairoType::Pointer(Box::new(s)),
+    "felt"  => CairoType::Felt,
+    <s:Identifier> => CairoType::Id(<>),
+    "(" <e:CairoType> <v:("," <CairoType>)*>  ")" => {
            let mut v = v;
            v.insert(0, e);
-           Type::Tuple(v)
+           CairoType::Tuple(v)
     },
-    "(" <e:Type> <v:("," <Type>)+> "," ")" => {
+    "(" <e:CairoType> <v:("," <CairoType>)+> "," ")" => {
          let mut v = v;
          v.insert(0, e);
-         Type::Tuple(v)
+         CairoType::Tuple(v)
     },
-    "(" <e:Type> "," ")" => Type::Tuple(vec![e]),
-    "(" ")" => Type::Tuple(vec![]),
+    "(" <e:CairoType> "," ")" => CairoType::Tuple(vec![e]),
+    "(" ")" => CairoType::Tuple(vec![]),
 }
 
 Call: Call = {
@@ -120,8 +120,8 @@ ElseBranch: Vec<Instruction> = {
 }
 
 PointerType: PointerType = {
-    <s:Type>"*" => PointerType::Single(<>),
-     <s:Type> "**" => PointerType::Double(<>),
+    <s:CairoType>"*" => PointerType::Single(<>),
+     <s:CairoType> "**" => PointerType::Double(<>),
 };
 
 Register: Register = {
@@ -137,8 +137,8 @@ Namespace: Namespace = {
    <l:@L>  <decorators:DecoratorList>  "namespace" <name:Id> ":" newline <instructions:CodeBlock> "end" <r:@L>  => Namespace {decorators, name, instructions,loc:Loc(l,r)  }
 }
 
-Struct: Struct = {
-    <l:@L>  <decorators:DecoratorList>  "struct" <name:Id> ":" newline <members:Member*> "end" <r:@L> => Struct {decorators, name, members, loc:Loc(l,r) }
+Struct: StructDef = {
+    <l:@L>  <decorators:DecoratorList>  "struct" <name:Id> ":" newline <members:Member*> "end" <r:@L> => StructDef {decorators, name, members, loc:Loc(l,r) }
 }
 
 Member: Pair = {
@@ -262,7 +262,7 @@ ReturnStmt: Vec<ExprAssignment> = {
 }
 
 Pair: Pair = {
-    <name:Id> ":" <ty:Type> => Pair{name, ty}
+    <name:Id> ":" <ty:CairoType> => Pair{name, ty}
 }
 
 TypedIdentifier: TypedIdentifier  = {
@@ -275,8 +275,8 @@ RefBinding: RefBinding = {
     "(" <ty:IdentifierList> ")" => RefBinding::List(<>),
 }
 
-TypeHint: Type = {
-  ":" <ty:Type> => ty
+TypeHint: CairoType = {
+  ":" <ty:CairoType> => ty
 }
 
 ExprAssignment: ExprAssignment = {

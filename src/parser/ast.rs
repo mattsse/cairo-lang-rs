@@ -257,20 +257,20 @@ impl fmt::Display for Decorator {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Struct {
+pub struct StructDef {
     pub decorators: Vec<Decorator>,
     pub name: String,
     pub members: Vec<Pair>,
     pub loc: Loc,
 }
 
-impl Visitable for Struct {
+impl Visitable for StructDef {
     fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
         v.visit_struct_def(self)
     }
 }
 
-impl fmt::Display for Struct {
+impl fmt::Display for StructDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt_trailing_newline(&self.decorators, f)?;
         writeln!(f, "struct {}:", self.name)?;
@@ -308,7 +308,7 @@ impl fmt::Display for Namespace {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Member {
     pub name: String,
-    pub ty: Type,
+    pub ty: CairoType,
 }
 
 impl fmt::Display for Member {
@@ -318,39 +318,39 @@ impl fmt::Display for Member {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Type {
+pub enum CairoType {
     Felt,
     Id(Identifier),
     /// A tuple is a finite, ordered, unchangeable list of elements.
-    Tuple(Vec<Type>),
+    Tuple(Vec<CairoType>),
     Pointer(Box<PointerType>),
 }
 
-impl Visitable for Type {
+impl Visitable for CairoType {
     fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
         v.visit_type(self)
     }
 }
 
-impl fmt::Display for Type {
+impl fmt::Display for CairoType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Type::Felt => f.write_str("felt"),
-            Type::Id(name) => write!(f, "{}", name.join(".")),
-            Type::Tuple(els) => {
+            CairoType::Felt => f.write_str("felt"),
+            CairoType::Id(name) => write!(f, "{}", name.join(".")),
+            CairoType::Tuple(els) => {
                 f.write_char('(')?;
                 comma_separated(els, f)?;
                 f.write_char(')')
             }
-            Type::Pointer(p) => p.fmt(f),
+            CairoType::Pointer(p) => p.fmt(f),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PointerType {
-    Single(Type),
-    Double(Type),
+    Single(CairoType),
+    Double(CairoType),
 }
 
 impl fmt::Display for PointerType {
@@ -377,7 +377,7 @@ pub enum Expr {
     Deref(Box<Expr>, Loc),
     Subscript(Box<Expr>, Box<Expr>, Loc),
     Dot(Box<Expr>, String, Loc),
-    Cast(Box<Expr>, Type, Loc),
+    Cast(Box<Expr>, CairoType, Loc),
     Parentheses(Vec<ExprAssignment>, Loc),
     Address(Box<Expr>, Loc),
     Neg(Box<Expr>, Loc),
@@ -524,7 +524,7 @@ impl Visitable for ConstantDef {
 pub struct TypedIdentifier {
     pub is_local: bool,
     pub id: String,
-    pub ty: Option<Type>,
+    pub ty: Option<CairoType>,
     pub loc: Loc,
 }
 
@@ -568,7 +568,7 @@ pub enum Instruction {
     Label(Identifier, Loc),
     Function(FunctionDef),
     FunctionCall(FunctionCall),
-    Struct(Struct),
+    Struct(StructDef),
     Namespace(Namespace),
     WithAttrStatement(WithAttrStatement),
     WithStatement(WithStatement),
@@ -975,7 +975,7 @@ impl fmt::Display for FunctionCall {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pair {
     pub name: String,
-    pub ty: Type,
+    pub ty: CairoType,
 }
 
 impl fmt::Display for Pair {
