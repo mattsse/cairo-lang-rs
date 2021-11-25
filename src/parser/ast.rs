@@ -156,7 +156,7 @@ impl fmt::Display for FunctionImport {
 }
 
 /// Cairo lang builtins
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Builtin {
     Pedersen,
     RangeCheck,
@@ -751,7 +751,7 @@ impl Visitable for Directive {
     fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
         match self {
             Directive::Lang(_, id) => v.visit_lang(id),
-            Directive::Builtins(_, builtins) => v.visit_builtins(builtins),
+            Directive::Builtins(loc, builtins) => v.visit_builtins(builtins, *loc),
         }
     }
 }

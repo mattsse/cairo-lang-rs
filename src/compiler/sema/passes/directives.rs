@@ -1,13 +1,18 @@
 use crate::{
     compiler::{
         sema::{passes::Pass, PreprocessedProgram},
-        Visitable, Visitor,
+        VResult, Visitable, Visitor,
     },
-    error::Result,
+    error::{CairoError, Result},
+    parser::ast::{Builtin, Loc}
 };
+use std::collections::HashSet;
 
 #[derive(Debug, Default)]
-pub struct DirectivesCollectorPass {}
+pub struct DirectivesCollectorPass {
+    builtins: Vec<Builtin>,
+    builtins_set: bool,
+}
 
 impl DirectivesCollectorPass {}
 
@@ -21,4 +26,26 @@ impl Pass for DirectivesCollectorPass {
     }
 }
 
-impl Visitor for DirectivesCollectorPass {}
+impl Visitor for DirectivesCollectorPass {
+    fn visit_builtins(&mut self, builtins: &mut [Builtin], loc: Loc) -> VResult {
+        if self.builtins_set {
+            return Err(CairoError::Preprocess(format!(
+                "Redefinition of builtins directive: {}",
+                loc
+            )))
+        }
+
+        let mut unique_builtins = HashSet::new();
+        for builtin in builtins.iter() {
+            if !unique_builtins.insert(builtin) {
+                return Err(CairoError::Preprocess(format!(
+                    "Builtin {} appears twice in builtins directive",
+                    builtin
+                )))
+            }
+        }
+        self.builtins = builtins.to_vec();
+
+        Ok(())
+    }
+}

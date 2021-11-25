@@ -68,7 +68,7 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn visit_builtins(&mut self, _: &mut [Builtin]) -> VResult {
+    fn visit_builtins(&mut self, _: &mut [Builtin], _: Loc) -> VResult {
         Ok(())
     }
 
