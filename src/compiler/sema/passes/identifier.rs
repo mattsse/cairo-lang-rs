@@ -60,7 +60,9 @@ impl<'a> IdVisitor<'a> {
             if !existing_def.is_unresolved() || !ty.is_unresolved() {
                 return Err(CairoError::Preprocess(format!("Redefinition of {} at {}", name, loc)))
             }
-            if !existing_def.is_reference() || !ty.is_reference() {
+            if !(existing_def.is_reference() || existing_def.is_unresolved_reference()) ||
+                !(ty.is_reference() || ty.is_unresolved_reference())
+            {
                 return Err(CairoError::Preprocess(format!("Redefinition of {} at {}", name, loc)))
             }
         }
@@ -81,14 +83,7 @@ impl<'a> IdVisitor<'a> {
         &mut self,
         function_scope: ScopedName,
         identifier_list: &[TypedIdentifier],
-        loc: Loc,
     ) -> VResult {
-        self.add_unresolved_identifier(
-            function_scope.clone(),
-            IdentifierDefinitionType::Struct,
-            loc,
-        )?;
-
         for arg_id in identifier_list {
             if arg_id.id == N_LOCALS_CONSTANT {
                 return Err(CairoError::Preprocess(format!(
@@ -194,7 +189,7 @@ impl<'a> Visitor for IdVisitor<'a> {
     }
 
     fn visit_function(&mut self, fun: &mut FunctionDef) -> VResult {
-        let function_scope = self.current_identifier(fun.name.clone());
+        let function_scope = self.scope_tracker.current_scope().as_ref().clone();
 
         self.add_unresolved_identifier(
             function_scope.clone(),
@@ -203,28 +198,34 @@ impl<'a> Visitor for IdVisitor<'a> {
         )?;
 
         let arg_scope = function_scope.clone().appended(ARG_SCOPE);
-        let return_scope = function_scope.clone().appended(RETURN_SCOPE);
+        self.add_unresolved_identifier(arg_scope, IdentifierDefinitionType::Struct, fun.loc)?;
 
-        self.handle_function_arguments(arg_scope, &fun.input_args, fun.loc)?;
+        self.handle_function_arguments(function_scope.clone(), &fun.input_args)?;
 
         if let Some(ref implicit) = fun.implicit_args {
             let implicit_arg_scope = function_scope.clone().appended(IMPLICIT_ARG_SCOPE);
-            self.handle_function_arguments(implicit_arg_scope, implicit, fun.loc)?;
+            self.add_unresolved_identifier(
+                implicit_arg_scope,
+                IdentifierDefinitionType::Struct,
+                fun.loc,
+            )?;
+            self.handle_function_arguments(function_scope.clone(), implicit)?;
         }
 
+        let return_scope = function_scope.clone().appended(RETURN_SCOPE);
         self.add_unresolved_identifier(return_scope, IdentifierDefinitionType::Struct, fun.loc)?;
 
         // ensure there is no name collision
         if let Some(ref implicit) = fun.implicit_args {
             let implicit_arg_names = implicit.iter().map(|arg| &arg.id).collect::<HashSet<_>>();
-            let mut arg_and_return_identifiers =
-                fun.implicit_args.iter().flat_map(|i| i.iter()).collect::<Vec<_>>();
+            let mut arg_and_return_identifiers = fun.input_args.iter().collect::<Vec<_>>();
+
             if let Some(ref returns) = fun.return_values {
                 arg_and_return_identifiers.extend(returns);
             }
             for arg_id in arg_and_return_identifiers {
                 if implicit_arg_names.contains(&arg_id.id) {
-                    return Err(CairoError::Preprocess(format!("Arguments and return values cannot have the same name of an implicit argument at {}", arg_id.loc)))
+                    return Err(CairoError::Preprocess(format!("Arguments and return values cannot have the same name of an implicit argument {} at {}",arg_id.id, arg_id.loc)))
                 }
             }
         }
@@ -249,14 +250,14 @@ impl<'a> Visitor for IdVisitor<'a> {
 
         self.add_unresolved_identifier(
             function_scope.clone(),
-            IdentifierDefinitionType::Function,
+            IdentifierDefinitionType::Namespace,
             ns.loc,
         )?;
+
         let arg_scope = function_scope.clone().appended(ARG_SCOPE);
+        self.add_unresolved_identifier(arg_scope, IdentifierDefinitionType::Struct, ns.loc)?;
+
         let return_scope = function_scope.clone().appended(RETURN_SCOPE);
-
-        self.handle_function_arguments(arg_scope, &[], ns.loc)?;
-
         self.add_unresolved_identifier(return_scope, IdentifierDefinitionType::Struct, ns.loc)?;
 
         self.add_unresolved_identifier(
@@ -299,5 +300,77 @@ impl<'a> Visitor for IdVisitor<'a> {
             IdentifierDefinitionType::Reference,
             id.loc,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{collections::HashMap, rc::Rc};
+
+    fn visit(s: &str) -> Identifiers {
+        let mut cairo = CairoFile::parse(s).unwrap();
+        let mut identifiers = Identifiers::default();
+        let mut scope_tracker = ScopeTracker::default();
+        scope_tracker.enter_scope(Rc::new(ScopedName::root()));
+        let mut vistor =
+            IdVisitor { identifiers: &mut identifiers, scope_tracker: &mut scope_tracker };
+        cairo.visit(&mut vistor).unwrap();
+        identifiers
+    }
+
+    #[test]
+    fn test_single_binds() {
+        let s = r#"
+tempvar a = [ap]
+const b = [ap]
+local c = [ap]
+let d = [fp] + 2
+f:
+let g : H = f(1, 2, 3)
+        "#;
+        let _ = visit(s);
+    }
+
+    #[test]
+    fn test_collect_multi_binds() {
+        let s = r#"
+func a(b, c) -> (d):
+    [ap] = [ap]
+end
+let (e, f) = g()
+        "#;
+        let _ids = visit(s);
+    }
+
+    #[test]
+    fn test_nested_funcs() {
+        let s = r#"
+func foo{z}(x):
+    local a
+    func bar(y):
+        tempvar b = [ap]
+    end
+end
+        "#;
+        let _ids = visit(s);
+    }
+
+    #[test]
+    fn test_redefinition() {
+        let s = r#"
+tempvar name = [ap]
+local name = [ap]
+        "#;
+        let ids = visit(s);
+        assert_eq!(
+            ids.identifiers,
+            HashMap::from([(
+                ScopedName::from_str("name"),
+                Rc::new(IdentifierDefinitionType::Unresolved(Box::new(
+                    IdentifierDefinitionType::Reference
+                )))
+            )])
+        );
     }
 }

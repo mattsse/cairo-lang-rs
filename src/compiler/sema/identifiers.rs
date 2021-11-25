@@ -10,8 +10,8 @@ use std::{
 /// Manages a list of identifiers
 #[derive(Debug, Default)]
 pub struct Identifiers {
-    root: Scope,
-    identifiers: HashMap<ScopedName, Rc<IdentifierDefinitionType>>,
+    pub(crate) root: Scope,
+    pub(crate) identifiers: HashMap<ScopedName, Rc<IdentifierDefinitionType>>,
 }
 
 impl Identifiers {
@@ -198,7 +198,7 @@ pub struct IdentifierDef {
     pub full_name: ScopedName,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum IdentifierDefinitionType {
     ConstDef,
     Label,
@@ -222,6 +222,14 @@ impl IdentifierDefinitionType {
     }
     pub fn is_unresolved(&self) -> bool {
         matches!(self, IdentifierDefinitionType::Unresolved(_))
+    }
+
+    pub fn is_unresolved_reference(&self) -> bool {
+        if let IdentifierDefinitionType::Unresolved(ty) = self {
+            ty.is_reference()
+        } else {
+            false
+        }
     }
 }
 
