@@ -74,6 +74,16 @@ pub struct AliasedId {
     pub loc: Loc,
 }
 
+impl AliasedId {
+    pub fn identifier(&self) -> &str {
+        if let Some(ref alias) = self.alias {
+            alias
+        } else {
+            &self.id
+        }
+    }
+}
+
 impl fmt::Display for AliasedId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(alias) = self.alias.as_ref() {

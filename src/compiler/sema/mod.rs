@@ -140,6 +140,12 @@ impl ScopedName {
     }
 }
 
+impl<T: AsRef<str>> From<T> for ScopedName {
+    fn from(s: T) -> Self {
+        ScopedName::from_str(s)
+    }
+}
+
 impl fmt::Display for ScopedName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.join(""))

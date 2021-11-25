@@ -58,12 +58,12 @@ impl<'a> IdVisitor<'a> {
     ) -> VResult {
         if let Some(existing_def) = self.identifiers.get_by_full_name(&name) {
             if !existing_def.is_unresolved() || !ty.is_unresolved() {
-                return Err(CairoError::Preprocess(format!("Redefinition of {} at {}", name, loc)))
+                return Err(CairoError::Redefinition(name, loc))
             }
             if !(existing_def.is_reference() || existing_def.is_unresolved_reference()) ||
                 !(ty.is_reference() || ty.is_unresolved_reference())
             {
-                return Err(CairoError::Preprocess(format!("Redefinition of {} at {}", name, loc)))
+                return Err(CairoError::Redefinition(name, loc))
             }
         }
         self.identifiers.add_identifier(name, ty);
@@ -174,9 +174,8 @@ impl<'a> Visitor for IdVisitor<'a> {
             if self.identifiers.get_by_full_name(&alias_dest).is_none() {
                 let _ = self.identifiers.get_scope(&alias_dest)?;
             }
-
             self.add_identifier(
-                self.current_identifier(item.id.clone()),
+                self.current_identifier(item.identifier().to_string()),
                 IdentifierDefinitionType::Alias(alias_dest),
                 el.loc,
             )?;
@@ -308,15 +307,19 @@ mod tests {
     use super::*;
     use std::{collections::HashMap, rc::Rc};
 
-    fn visit(s: &str) -> Identifiers {
+    fn try_visit(s: &str) -> Result<Identifiers> {
         let mut cairo = CairoFile::parse(s).unwrap();
         let mut identifiers = Identifiers::default();
         let mut scope_tracker = ScopeTracker::default();
         scope_tracker.enter_scope(Rc::new(ScopedName::root()));
         let mut vistor =
             IdVisitor { identifiers: &mut identifiers, scope_tracker: &mut scope_tracker };
-        cairo.visit(&mut vistor).unwrap();
-        identifiers
+        cairo.visit(&mut vistor)?;
+        Ok(identifiers)
+    }
+
+    fn visit(s: &str) -> Identifiers {
+        try_visit(s).unwrap()
     }
 
     #[test]
@@ -372,5 +375,45 @@ local name = [ap]
                 )))
             )])
         );
+    }
+
+    #[test]
+    fn can_identify_redefinitions() {
+        let s = r#"
+foo:
+local foo = [ap]
+        "#;
+        let res = try_visit(s).unwrap_err();
+        assert!(matches!(res, CairoError::Redefinition(_, _)));
+
+        let s = r#"
+func bar():
+end
+
+func bar():
+end
+        "#;
+        let res = try_visit(s).unwrap_err();
+        assert!(matches!(res, CairoError::Redefinition(_, _)));
+    }
+
+    #[test]
+    fn can_identify_imports() {
+        let s = r#"
+from a import b as b0
+        "#;
+        let mut cairo = CairoFile::parse(s).unwrap();
+        let mut identifiers = Identifiers::default();
+        let mut scope_tracker = ScopeTracker::default();
+        identifiers
+            .add_identifier(ScopedName::from_str("a.b"), IdentifierDefinitionType::ConstDef);
+        scope_tracker.enter_scope(Rc::new(ScopedName::root()));
+        let mut vistor =
+            IdVisitor { identifiers: &mut identifiers, scope_tracker: &mut scope_tracker };
+        cairo.visit(&mut vistor).unwrap();
+        let scope =
+            identifiers.identifiers.get(&ScopedName::from_str("b0")).unwrap().as_ref().clone();
+
+        assert_eq!(scope, IdentifierDefinitionType::Alias(ScopedName::from_str("a.b")));
     }
 }

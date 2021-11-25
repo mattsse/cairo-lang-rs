@@ -32,6 +32,8 @@ pub enum CairoError {
     Identifier(String),
     #[error("{0}")]
     Preprocess(String),
+    #[error("Redefinition of `{0}` at `{1}`")]
+    Redefinition(ScopedName, Loc),
     #[error("`{0}` is not a scope")]
     NotScope(ScopedName, Option<ScopedName>, IdentifierDefinitionType),
     #[error("Expected labeled element:`{0:?}`")]
