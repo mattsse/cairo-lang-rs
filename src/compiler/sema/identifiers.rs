@@ -1,10 +1,12 @@
-use crate::{
-    compiler::sema::ScopedName,
-    error::{CairoError, Result},
-};
 use std::{
     collections::{HashMap, HashSet},
     rc::Rc,
+};
+
+use crate::{
+    compiler::sema::{ast::StructDefinition, ScopedName},
+    error::{CairoError, Result},
+    parser::ast::{CairoType, Loc, StructDef},
 };
 
 /// Manages a list of identifiers
@@ -20,6 +22,39 @@ impl Identifiers {
         let ty = Rc::new(ty);
         let dest = self.root.add_identifier(name, Rc::clone(&ty));
         self.identifiers.insert(dest, ty);
+    }
+
+    /// Resolves a `CairoType` to a fully qualified name
+    pub fn resolve_type(&mut self, cairo_type: CairoType) -> Result<CairoType> {
+        todo!()
+    }
+
+    /// Adds a definition of an identifier that must be already registered
+    pub fn add_name_definition(
+        &mut self,
+        name: ScopedName,
+        ty: IdentifierDefinitionType,
+        loc: Loc,
+        require_registered_type: bool,
+    ) -> Result<()> {
+        if let Some(def) = self.get_by_full_name(&name) {
+            if let Some(unresolved) = def.as_unresolved() {
+                if !ty.has_matching_type(unresolved) {
+                    return Err(CairoError::Preprocess(format!(
+                        "Expected Identifier {} to be a {:?} but is {:?}",
+                        name, unresolved, ty
+                    )))
+                }
+            } else {
+                return Err(CairoError::Redefinition(name.clone(), loc))
+            }
+        } else if require_registered_type {
+            return Err(CairoError::Preprocess(format!("Identifier {} not found", name)))
+        }
+
+        // override the resolved type
+        self.add_identifier(name, ty);
+        Ok(())
     }
 
     /// Finds the identifier with the given name with aliases
@@ -206,7 +241,7 @@ pub enum IdentifierDefinitionType {
     LocalVar,
     Function,
     Namespace,
-    Struct,
+    Struct(Option<StructDefinition>),
     TempVar,
     RValueRef,
     Alias(ScopedName),
@@ -214,8 +249,32 @@ pub enum IdentifierDefinitionType {
 }
 
 impl IdentifierDefinitionType {
+    pub fn is_const(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::ConstDef)
+    }
+    pub fn is_label(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::Label)
+    }
+    pub fn is_local_var(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::LocalVar)
+    }
+    pub fn is_temp_var(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::TempVar)
+    }
     pub fn is_alias(&self) -> bool {
         matches!(self, IdentifierDefinitionType::Alias(_))
+    }
+    pub fn is_rvalue_ref(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::RValueRef)
+    }
+    pub fn is_function(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::Function)
+    }
+    pub fn is_namespace(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::Namespace)
+    }
+    pub fn is_struct(&self) -> bool {
+        matches!(self, IdentifierDefinitionType::Struct(_))
     }
     pub fn is_reference(&self) -> bool {
         matches!(self, IdentifierDefinitionType::Reference)
@@ -224,11 +283,35 @@ impl IdentifierDefinitionType {
         matches!(self, IdentifierDefinitionType::Unresolved(_))
     }
 
+    pub fn as_unresolved(&self) -> Option<&IdentifierDefinitionType> {
+        if let IdentifierDefinitionType::Unresolved(inner) = self {
+            Some(&*inner)
+        } else {
+            None
+        }
+    }
+
     pub fn is_unresolved_reference(&self) -> bool {
         if let IdentifierDefinitionType::Unresolved(ty) = self {
             ty.is_reference()
         } else {
             false
+        }
+    }
+
+    pub fn has_matching_type(&self, other: &IdentifierDefinitionType) -> bool {
+        match self {
+            IdentifierDefinitionType::ConstDef => other.is_const(),
+            IdentifierDefinitionType::Label => other.is_label(),
+            IdentifierDefinitionType::Reference => other.is_reference(),
+            IdentifierDefinitionType::LocalVar => other.is_local_var(),
+            IdentifierDefinitionType::Function => other.is_function(),
+            IdentifierDefinitionType::Namespace => other.is_namespace(),
+            IdentifierDefinitionType::Struct(_) => other.is_struct(),
+            IdentifierDefinitionType::TempVar => other.is_temp_var(),
+            IdentifierDefinitionType::RValueRef => other.is_rvalue_ref(),
+            IdentifierDefinitionType::Alias(_) => other.is_alias(),
+            IdentifierDefinitionType::Unresolved(_) => other.is_unresolved(),
         }
     }
 }

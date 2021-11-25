@@ -4,7 +4,7 @@ use crate::{
         VResult, Visitable, Visitor,
     },
     error::{CairoError, Result},
-    parser::ast::{Builtin, Loc}
+    parser::ast::{Builtin, Loc},
 };
 use std::collections::HashSet;
 
@@ -13,8 +13,6 @@ pub struct DirectivesCollectorPass {
     builtins: Vec<Builtin>,
     builtins_set: bool,
 }
-
-impl DirectivesCollectorPass {}
 
 impl Pass for DirectivesCollectorPass {
     fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {

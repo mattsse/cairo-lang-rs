@@ -3,7 +3,7 @@ use crate::{
     error::{CairoError, Result},
     parser::ast::*,
 };
-use std::rc::Rc;
+use std::{collections::BTreeMap, rc::Rc};
 
 /// the general purpose result type used in passes
 pub type VResult = Result<()>;
@@ -23,7 +23,7 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn visit_struct_def(&mut self, _: &mut Struct) -> VResult {
+    fn visit_struct_def(&mut self, _: &mut StructDef) -> VResult {
         Ok(())
     }
     fn visit_with(&mut self, _: &mut WithStatement) -> VResult {
@@ -42,7 +42,7 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn visit_type(&mut self, _: &mut Type) -> VResult {
+    fn visit_type(&mut self, _: &mut CairoType) -> VResult {
         Ok(())
     }
 
@@ -76,11 +76,11 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn enter_function(&mut self, _: &mut FunctionDef) -> VResult {
+    fn visit_function(&mut self, _: &mut FunctionDef) -> VResult {
         Ok(())
     }
 
-    fn visit_function(&mut self, _: &mut FunctionDef) -> VResult {
+    fn enter_function(&mut self, _: &mut FunctionDef) -> VResult {
         Ok(())
     }
 
@@ -210,4 +210,20 @@ impl Visitor for ScopeTracker {
         self.exit_scope();
         Ok(())
     }
+}
+
+/// Represents a defined member within a struct
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct MemberDefinition {
+    pub offset: u64,
+    pub cairo_type: CairoType,
+    pub loc: Loc,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct StructDefinition {
+    pub full_name: ScopedName,
+    pub members: BTreeMap<String, MemberDefinition>,
+    pub size: u64,
+    pub loc: Loc,
 }

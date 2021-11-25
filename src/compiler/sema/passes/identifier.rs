@@ -108,10 +108,10 @@ impl<'a> Visitor for IdVisitor<'a> {
         )
     }
 
-    fn visit_struct_def(&mut self, s: &mut Struct) -> VResult {
+    fn visit_struct_def(&mut self, s: &mut StructDef) -> VResult {
         self.add_unresolved_identifier(
             self.current_identifier(s.name.clone()),
-            IdentifierDefinitionType::Struct,
+            IdentifierDefinitionType::Struct(None),
             s.loc,
         )
     }
@@ -181,10 +181,6 @@ impl<'a> Visitor for IdVisitor<'a> {
         Ok(())
     }
 
-    fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
-        self.scope_tracker.enter_function(f)
-    }
-
     fn visit_function(&mut self, fun: &mut FunctionDef) -> VResult {
         let function_scope = self.scope_tracker.current_scope().as_ref().clone();
 
@@ -195,7 +191,7 @@ impl<'a> Visitor for IdVisitor<'a> {
         )?;
 
         let arg_scope = function_scope.clone().appended(ARG_SCOPE);
-        self.add_unresolved_identifier(arg_scope, IdentifierDefinitionType::Struct, fun.loc)?;
+        self.add_unresolved_identifier(arg_scope, IdentifierDefinitionType::Struct(None), fun.loc)?;
 
         self.handle_function_arguments(function_scope.clone(), &fun.input_args)?;
 
@@ -203,14 +199,18 @@ impl<'a> Visitor for IdVisitor<'a> {
             let implicit_arg_scope = function_scope.clone().appended(IMPLICIT_ARG_SCOPE);
             self.add_unresolved_identifier(
                 implicit_arg_scope,
-                IdentifierDefinitionType::Struct,
+                IdentifierDefinitionType::Struct(None),
                 fun.loc,
             )?;
             self.handle_function_arguments(function_scope.clone(), implicit)?;
         }
 
         let return_scope = function_scope.clone().appended(RETURN_SCOPE);
-        self.add_unresolved_identifier(return_scope, IdentifierDefinitionType::Struct, fun.loc)?;
+        self.add_unresolved_identifier(
+            return_scope,
+            IdentifierDefinitionType::Struct(None),
+            fun.loc,
+        )?;
 
         // ensure there is no name collision
         if let Some(ref implicit) = fun.implicit_args {
@@ -234,6 +234,10 @@ impl<'a> Visitor for IdVisitor<'a> {
         )
     }
 
+    fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
+        self.scope_tracker.enter_function(f)
+    }
+
     fn exit_function(&mut self, f: &mut FunctionDef) -> VResult {
         self.scope_tracker.exit_function(f)
     }
@@ -243,7 +247,7 @@ impl<'a> Visitor for IdVisitor<'a> {
     }
 
     fn visit_namespace(&mut self, ns: &mut Namespace) -> VResult {
-        let function_scope = self.current_identifier(ns.name.clone());
+        let function_scope = self.scope_tracker.current_scope().as_ref().clone();
 
         self.add_unresolved_identifier(
             function_scope.clone(),
@@ -252,10 +256,14 @@ impl<'a> Visitor for IdVisitor<'a> {
         )?;
 
         let arg_scope = function_scope.clone().appended(ARG_SCOPE);
-        self.add_unresolved_identifier(arg_scope, IdentifierDefinitionType::Struct, ns.loc)?;
+        self.add_unresolved_identifier(arg_scope, IdentifierDefinitionType::Struct(None), ns.loc)?;
 
         let return_scope = function_scope.clone().appended(RETURN_SCOPE);
-        self.add_unresolved_identifier(return_scope, IdentifierDefinitionType::Struct, ns.loc)?;
+        self.add_unresolved_identifier(
+            return_scope,
+            IdentifierDefinitionType::Struct(None),
+            ns.loc,
+        )?;
 
         self.add_unresolved_identifier(
             function_scope.appended(N_LOCALS_CONSTANT),

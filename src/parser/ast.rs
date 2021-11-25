@@ -1,6 +1,6 @@
 //! AST for Cairo-lang based on https://cairo-lang.org/docs/reference/syntax.html
 use crate::{
-    compiler::{VResult, Visitable, Visitor},
+    compiler::{sema::ScopedName, VResult, Visitable, Visitor},
     error::CairoError,
     parser::{
         self,
@@ -320,9 +320,20 @@ impl fmt::Display for Member {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeStruct {
     pub name: Identifier,
-    /// Indicates whether scope refers to the fully resolved name.
+    /// Indicates whether scope refers to the fully resolved name
     pub is_fully_resolved: bool,
     pub loc: Loc,
+}
+
+impl TypeStruct {
+    /// Returns the scope of this type if it was resolved previously
+    pub fn resolved_scope(&self) -> Option<ScopedName> {
+        if self.is_fully_resolved {
+            Some(ScopedName::new(self.name.clone()))
+        } else {
+            None
+        }
+    }
 }
 
 impl fmt::Display for TypeStruct {

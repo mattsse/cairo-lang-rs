@@ -18,6 +18,7 @@ mod identifier;
 mod import;
 mod label;
 mod preprocess;
+mod struct_collect;
 
 /// A manager for running passes
 #[derive(Debug)]
