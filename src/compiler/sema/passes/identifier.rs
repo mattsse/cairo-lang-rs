@@ -13,10 +13,8 @@ use crate::{
 use std::collections::HashSet;
 
 /// Resolves identifiers for cairo code elements.
-#[derive(Debug)]
-pub struct IdentifierCollectorPass {}
-
-impl IdentifierCollectorPass {}
+#[derive(Debug, Default)]
+pub struct IdentifierCollectorPass;
 
 impl Pass for IdentifierCollectorPass {
     fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
@@ -405,8 +403,7 @@ from a import b as b0
         let mut cairo = CairoFile::parse(s).unwrap();
         let mut identifiers = Identifiers::default();
         let mut scope_tracker = ScopeTracker::default();
-        identifiers
-            .add_identifier(ScopedName::from_str("a.b"), IdentifierDefinitionType::ConstDef);
+        identifiers.add_identifier(ScopedName::from_str("a.b"), IdentifierDefinitionType::ConstDef);
         scope_tracker.enter_scope(Rc::new(ScopedName::root()));
         let mut vistor =
             IdVisitor { identifiers: &mut identifiers, scope_tracker: &mut scope_tracker };

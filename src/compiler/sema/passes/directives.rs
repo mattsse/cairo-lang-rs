@@ -6,7 +6,7 @@ use crate::{
     error::Result,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DirectivesCollectorPass {}
 
 impl DirectivesCollectorPass {}

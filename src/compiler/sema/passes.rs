@@ -1,6 +1,15 @@
 use crate::compiler::sema::PreprocessedProgram;
 
-use crate::error::Result;
+use crate::{
+    compiler::{
+        sema::passes::{
+            directives::DirectivesCollectorPass, identifier::IdentifierCollectorPass,
+            import::ModuleCollectorPass, label::UniqueLabelPass,
+        },
+        ModuleReader,
+    },
+    error::Result,
+};
 use ethers::core::k256::U256;
 use std::fmt;
 
@@ -29,9 +38,33 @@ impl PassManager {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct PassManagerBuilder {
+    module_reader: Option<ModuleReader>,
+}
+
+impl PassManagerBuilder {
+    /// Use a custom `ModuleReader`
+    pub fn module_reader(mut self, module_reader: ModuleReader) -> Self {
+        self.module_reader = Some(module_reader);
+        self
+    }
+
+    pub fn build(self) -> PassManager {
+        PassManager {
+            passes: vec![
+                Box::new(ModuleCollectorPass::new(self.module_reader.unwrap_or_default())),
+                Box::new(UniqueLabelPass::default()),
+                Box::new(IdentifierCollectorPass::default()),
+                Box::new(DirectivesCollectorPass::default()),
+            ],
+        }
+    }
+}
+
 impl Default for PassManager {
     fn default() -> Self {
-        todo!()
+        PassManagerBuilder::default().build()
     }
 }
 
