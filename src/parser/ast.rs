@@ -318,9 +318,23 @@ impl fmt::Display for Member {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeStruct {
+    pub name: Identifier,
+    /// Indicates whether scope refers to the fully resolved name.
+    pub is_fully_resolved: bool,
+    pub loc: Loc,
+}
+
+impl fmt::Display for TypeStruct {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name.join("."))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CairoType {
     Felt,
-    Id(Identifier),
+    Id(TypeStruct),
     /// A tuple is a finite, ordered, unchangeable list of elements.
     Tuple(Vec<CairoType>),
     Pointer(Box<PointerType>),
@@ -336,7 +350,7 @@ impl fmt::Display for CairoType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CairoType::Felt => f.write_str("felt"),
-            CairoType::Id(name) => write!(f, "{}", name.join(".")),
+            CairoType::Id(ty) => ty.fmt(f),
             CairoType::Tuple(els) => {
                 f.write_char('(')?;
                 comma_separated(els, f)?;

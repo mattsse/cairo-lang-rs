@@ -82,7 +82,7 @@ BoolExpr: BoolExpr = {
 CairoType: CairoType = {
     <s:PointerType> => CairoType::Pointer(Box::new(s)),
     "felt"  => CairoType::Felt,
-    <s:Identifier> => CairoType::Id(<>),
+     <l:@L> <name:Identifier>  <r:@L> => CairoType::Id(TypeStruct {name, is_fully_resolved: false, loc:Loc(l,r)}),
     "(" <e:CairoType> <v:("," <CairoType>)*>  ")" => {
            let mut v = v;
            v.insert(0, e);
