@@ -67,4 +67,16 @@ mod tests {
     fn parse_testdata_cairo_files() {
         parse_files_in_folder("test-data/cairo-files")
     }
+
+    #[test]
+    fn parse_comment() {
+        let s = r#"from starkware.cairo.common.ec_point import EcPoint
+
+# Specifies the hash builtin memory structure.
+struct HashBuiltin:
+    member x : felt
+end
+"#;
+        CairoFile::parse(&s).unwrap();
+    }
 }

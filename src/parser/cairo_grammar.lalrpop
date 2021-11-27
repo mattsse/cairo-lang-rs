@@ -1,6 +1,5 @@
 use crate::parser::ast::*;
 use crate::parser::lexer::{CairoToken, CairoLexerError};
-use std::borrow::Cow;
 
 grammar<'input>(input: &'input str);
 
@@ -318,26 +317,26 @@ Hint: String = {
     <s:hint> => s.to_string(),
 };
 
-NoteOrNewLine: Option<Cow<'input, str>> = {
-    newline => None,
-    comment => Some(Cow::Borrowed(<>)),
+NoteOrNewLine: Note = {
+    <l:@L> <s:comment> <r:@L> => Note::Comment(s.to_string(), Loc(l,r)),
+    <l:@L> newline  <r:@L>  => Note::NewLine(Loc(l,r)),
 }
 
-notes: Vec<Option<Cow<'input, str>>> = {
-  NoteOrNewLine*
+notes: Notes = {
+ <l:@L>  <notes:NoteOrNewLine*> <r:@L>  => Notes{notes, loc:Loc(l,r)}
 }
 
-nomemptyNotes: Vec<Option<Cow<'input, str>>> = {
-  NoteOrNewLine+
+nomemptyNotes: Notes = {
+  <l:@L>  <notes:NoteOrNewLine+> <r:@L>   => Notes{notes, loc:Loc(l,r)}
 }
 
-commaOrNonEmptyNotes:() = {
-    "," => (),
-    newline => (),
-    comment => (),
+commaOrNonEmptyNotes: Separator = {
+   <l:@L>  "," <r:@L> => Separator::Comma(Loc(l,r)),
+    <l:@L> newline  <r:@L>  => Separator::NewLine(Loc(l,r)),
+    <l:@L>  <s:comment> <r:@L> => Separator::Comment(s.to_string(), Loc(l,r)),
 }
 
-exprSeperator = {
+exprSeperator: Vec<Separator> = {
    commaOrNonEmptyNotes+
 }
 Comma<T>: Vec<T> = {

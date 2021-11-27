@@ -1042,6 +1042,57 @@ impl fmt::Display for IfStatement {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Notes {
+    pub notes: Vec<Note>,
+    pub loc: Loc,
+}
+
+impl fmt::Display for Notes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for c in &self.notes {
+            c.fmt(f)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Note {
+    NewLine(Loc),
+    Comment(String, Loc),
+}
+
+impl fmt::Display for Note {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Note::NewLine(_) => f.write_char('\n'),
+            Note::Comment(s, _) => {
+                write!(f, "# {}", s)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Separator {
+    Comma(Loc),
+    NewLine(Loc),
+    Comment(String, Loc),
+}
+
+impl fmt::Display for Separator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Separator::Comma(_) => f.write_char(','),
+            Separator::NewLine(_) => f.write_char('\n'),
+            Separator::Comment(s, _) => {
+                write!(f, "# {}", s)
+            }
+        }
+    }
+}
+
 fn fmt_trailing_newline<I, D>(items: I, f: &mut fmt::Formatter<'_>) -> fmt::Result
 where
     I: IntoIterator<Item = D>,

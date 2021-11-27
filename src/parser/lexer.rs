@@ -267,23 +267,25 @@ impl<'input> CairoLexer<'input> {
                         Some(Ok((start, CairoToken::Identifier(id), end)))
                     }
                 }
-                Some((_i, '#')) => {
+                Some((i, '#')) => {
                     // ignore Comments for now
-                    // let start = i + 1;
-                    // let mut end = start;
+                    let start = i + 1;
+                    let mut end = start;
                     loop {
                         match self.chars.peek() {
                             Some((_, '\r')) | Some((_, '\n')) => break,
                             None => return None,
-                            _ => {
+                            Some((idx, _)) => {
+                                end = *idx;
                                 self.chars.next();
                             }
                         }
                     }
+                    // TODO
                     // return Some(Ok((
                     //     i,
                     //     CairoToken::Comment(&self.input[start..=end]),
-                    //     end + 1,
+                    //     end +1,
                     // )));
                 }
                 Some((i, '=')) => {
