@@ -77,6 +77,6 @@ struct HashBuiltin:
     member x : felt
 end
 "#;
-        CairoFile::parse(&s).unwrap();
+        CairoFile::parse(s).unwrap();
     }
 }

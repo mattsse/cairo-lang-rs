@@ -49,7 +49,7 @@ impl<'a> StructVisitor<'a> {
 
 impl<'a> Visitor for StructVisitor<'a> {
     fn visit_struct_def(&mut self, elem: &mut StructDef) -> VResult {
-        let new_scope = self.current_identifier(elem.name.clone());
+        let _new_scope = self.current_identifier(elem.name.clone());
 
         if !elem.decorators.is_empty() {
             return Err(CairoError::Preprocess(format!(
@@ -61,7 +61,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         Ok(())
     }
 
-    fn visit_function(&mut self, fun: &mut FunctionDef) -> VResult {
+    fn visit_function(&mut self, _fun: &mut FunctionDef) -> VResult {
         Ok(())
     }
 
@@ -77,7 +77,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         self.scope_tracker.enter_namespace(n)
     }
 
-    fn visit_namespace(&mut self, ns: &mut Namespace) -> VResult {
+    fn visit_namespace(&mut self, _ns: &mut Namespace) -> VResult {
         Ok(())
     }
 

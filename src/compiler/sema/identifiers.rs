@@ -6,7 +6,7 @@ use std::{
 use crate::{
     compiler::sema::{ast::StructDefinition, ScopedName},
     error::{CairoError, Result},
-    parser::ast::{CairoType, Loc, StructDef},
+    parser::ast::{CairoType, Loc},
 };
 
 /// Manages a list of identifiers
@@ -25,7 +25,7 @@ impl Identifiers {
     }
 
     /// Resolves a `CairoType` to a fully qualified name
-    pub fn resolve_type(&mut self, cairo_type: CairoType) -> Result<CairoType> {
+    pub fn resolve_type(&mut self, _cairo_type: CairoType) -> Result<CairoType> {
         todo!()
     }
 
