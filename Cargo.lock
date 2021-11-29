@@ -35,9 +35,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.49"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a03e93e97a28fbc9f42fbc5ba0886a3c67eb637b476dbee711f80a6ffe8223d"
+checksum = "8b26702f315f53b6071259e15dd9d64528213b44d61de1ec926eca7715d62203"
 
 [[package]]
 name = "arrayvec"
@@ -717,7 +717,7 @@ dependencies = [
 [[package]]
 name = "ethers"
 version = "0.6.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "ethers-contract",
  "ethers-core",
@@ -731,7 +731,7 @@ dependencies = [
 [[package]]
 name = "ethers-contract"
 version = "0.6.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "ethers-contract-abigen",
  "ethers-contract-derive",
@@ -749,7 +749,7 @@ dependencies = [
 [[package]]
 name = "ethers-contract-abigen"
 version = "0.6.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -770,7 +770,7 @@ dependencies = [
 [[package]]
 name = "ethers-contract-derive"
 version = "0.6.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "ethers-contract-abigen",
  "ethers-core",
@@ -784,7 +784,7 @@ dependencies = [
 [[package]]
 name = "ethers-core"
 version = "0.6.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "arrayvec",
  "bytes",
@@ -812,7 +812,7 @@ dependencies = [
 [[package]]
 name = "ethers-etherscan"
 version = "0.2.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "ethers-core",
  "reqwest",
@@ -825,7 +825,7 @@ dependencies = [
 [[package]]
 name = "ethers-middleware"
 version = "0.6.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "async-trait",
  "ethers-contract",
@@ -848,7 +848,7 @@ dependencies = [
 [[package]]
 name = "ethers-providers"
 version = "0.6.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "async-trait",
  "auto_impl",
@@ -877,7 +877,7 @@ dependencies = [
 [[package]]
 name = "ethers-signers"
 version = "0.6.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "async-trait",
  "coins-bip32",
@@ -897,7 +897,7 @@ dependencies = [
 [[package]]
 name = "ethers-solc"
 version = "0.1.0"
-source = "git+https://github.com/gakonst/ethers-rs#9b6cc37ca05cada3d59eed9582803dc4b302bad5"
+source = "git+https://github.com/gakonst/ethers-rs#5dfc1bd17110d9f0b63740a2267d898fa1a3d2ae"
 dependencies = [
  "colored",
  "ethers-core",
@@ -2079,9 +2079,9 @@ checksum = "61b3909d758bb75c79f23d4736fac9433868679d3ad2ea7a61e3c25cfda9a088"
 
 [[package]]
 name = "ryu"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71d301d4193d031abdd79ff7e3dd721168a9572ef3fe51a1517aba235bd8f86e"
+checksum = "3c9613b5a66ab9ba26415184cfc41156594925a9cf3a2057e57f31ff145f6568"
 
 [[package]]
 name = "salsa20"

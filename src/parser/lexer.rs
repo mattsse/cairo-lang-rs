@@ -281,6 +281,7 @@ impl<'input> CairoLexer<'input> {
                             }
                         }
                     }
+                    let _end = end;
                     // TODO
                     // return Some(Ok((
                     //     i,
