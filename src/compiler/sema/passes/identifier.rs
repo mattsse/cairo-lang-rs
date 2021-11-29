@@ -258,6 +258,13 @@ impl<'a> Visitor for IdVisitor<'a> {
         let arg_scope = function_scope.clone().appended(ARG_SCOPE);
         self.add_unresolved_identifier(arg_scope, IdentifierDefinitionType::Struct(None), ns.loc)?;
 
+        let implicit_arg_scope = function_scope.clone().appended(IMPLICIT_ARG_SCOPE);
+        self.add_unresolved_identifier(
+            implicit_arg_scope,
+            IdentifierDefinitionType::Struct(None),
+            ns.loc,
+        )?;
+
         let return_scope = function_scope.clone().appended(RETURN_SCOPE);
         self.add_unresolved_identifier(
             return_scope,

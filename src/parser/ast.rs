@@ -351,6 +351,24 @@ pub enum CairoType {
     Pointer(Box<PointerType>),
 }
 
+impl CairoType {
+    pub const FELT_SIZE: u64 = 1;
+    pub const POINTER_SIZE: u64 = 1;
+
+    pub fn is_felt(&self) -> bool {
+        matches!(self, CairoType::Felt)
+    }
+    pub fn is_type_struct(&self) -> bool {
+        matches!(self, CairoType::Id(_))
+    }
+    pub fn is_tuple(&self) -> bool {
+        matches!(self, CairoType::Tuple(_))
+    }
+    pub fn is_pointer(&self) -> bool {
+        matches!(self, CairoType::Pointer(_))
+    }
+}
+
 impl Visitable for CairoType {
     fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
         v.visit_type(self)
@@ -551,6 +569,12 @@ pub struct TypedIdentifier {
     pub id: String,
     pub ty: Option<CairoType>,
     pub loc: Loc,
+}
+
+impl TypedIdentifier {
+    pub fn get_type(&self) -> CairoType {
+        self.ty.clone().unwrap_or(CairoType::Felt)
+    }
 }
 
 impl Visitable for TypedIdentifier {
@@ -997,6 +1021,7 @@ impl fmt::Display for FunctionCall {
     }
 }
 
+/// Represents a defined member within a struct
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MemberInfo {
     pub name: String,

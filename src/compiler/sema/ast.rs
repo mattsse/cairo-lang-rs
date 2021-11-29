@@ -3,7 +3,7 @@ use crate::{
     error::{CairoError, Result},
     parser::ast::*,
 };
-use std::{collections::BTreeMap, rc::Rc};
+use std::rc::Rc;
 
 /// the general purpose result type used in passes
 pub type VResult = Result<()>;
@@ -212,10 +212,10 @@ impl Visitor for ScopeTracker {
     }
 }
 
-/// Represents a defined member within a struct
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct MemberDefinition {
     pub offset: u64,
+    pub name: String,
     pub cairo_type: CairoType,
     pub loc: Loc,
 }
@@ -223,7 +223,7 @@ pub struct MemberDefinition {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct StructDefinition {
     pub full_name: ScopedName,
-    pub members: BTreeMap<String, MemberDefinition>,
+    pub members: Vec<MemberDefinition>,
     pub size: u64,
     pub loc: Loc,
 }

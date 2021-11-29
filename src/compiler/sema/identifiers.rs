@@ -29,6 +29,38 @@ impl Identifiers {
         todo!()
     }
 
+    pub fn get_struct_definition(&self, _struct_name: &ScopedName) -> Result<&StructDefinition> {
+        todo!()
+    }
+
+    pub fn get_struct_size(&self, _struct_name: &ScopedName) -> Result<u64> {
+        todo!()
+    }
+
+    /// Returns the size of the given type
+    pub fn get_size(&self, cairo_type: &CairoType) -> Result<u64> {
+        match cairo_type {
+            CairoType::Felt => Ok(CairoType::FELT_SIZE),
+            CairoType::Id(type_struct) => {
+                let scope = ScopedName::new(type_struct.name.clone());
+                if type_struct.is_fully_resolved {
+                    let def = self.get_struct_definition(&scope)?;
+                    Ok(def.size)
+                } else {
+                    self.get_struct_size(&scope)
+                }
+            }
+            CairoType::Tuple(tuple) => {
+                let mut size = 0;
+                for ty in tuple {
+                    size += self.get_size(ty)?;
+                }
+                Ok(size)
+            }
+            CairoType::Pointer(_) => Ok(CairoType::POINTER_SIZE),
+        }
+    }
+
     /// Adds a definition of an identifier that must be already registered
     pub fn add_name_definition(
         &mut self,
