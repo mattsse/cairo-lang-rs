@@ -140,8 +140,8 @@ Struct: StructDef = {
     <l:@L>  <decorators:DecoratorList>  "struct" <name:Id> ":" newline <members:Member*> "end" <r:@L> => StructDef {decorators, name, members, loc:Loc(l,r) }
 }
 
-Member: Pair = {
-    notes "member" <pair:Pair> newline => pair
+Member: MemberInfo = {
+    notes "member" <m:MemberInfo> newline => m
 }
 
 FunctionDef: FunctionDef = {
@@ -260,8 +260,8 @@ ReturnStmt: Vec<ExprAssignment> = {
     "return" "(" <args: ArgList> ")" => args
 }
 
-Pair: Pair = {
-    <name:Id> ":" <ty:CairoType> => Pair{name, ty}
+MemberInfo: MemberInfo = {
+     <l:@L> <name:Id> ":" <ty:CairoType> <r:@L>  => MemberInfo{name, ty, loc: Loc(l,r)}
 }
 
 TypedIdentifier: TypedIdentifier  = {

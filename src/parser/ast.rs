@@ -260,7 +260,7 @@ impl fmt::Display for Decorator {
 pub struct StructDef {
     pub decorators: Vec<Decorator>,
     pub name: String,
-    pub members: Vec<Pair>,
+    pub members: Vec<MemberInfo>,
     pub loc: Loc,
 }
 
@@ -998,12 +998,13 @@ impl fmt::Display for FunctionCall {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Pair {
+pub struct MemberInfo {
     pub name: String,
     pub ty: CairoType,
+    pub loc: Loc,
 }
 
-impl fmt::Display for Pair {
+impl fmt::Display for MemberInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} : {}", self.name, self.ty)
     }
