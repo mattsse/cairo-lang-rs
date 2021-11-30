@@ -69,8 +69,23 @@ impl Identifiers {
         todo!()
     }
 
-    pub fn get_struct_definition(&self, _struct_name: &ScopedName) -> Result<Rc<StructDefinition>> {
-        todo!("add accessible scopes")
+    /// Returns the struct definition that corresponds to the given identifier.
+    pub fn get_struct_definition(&self, struct_name: &ScopedName) -> Result<Rc<StructDefinition>> {
+        let def = self.search(struct_name, self.scope_tracker.accessible_scopes())?;
+        if !def.is_fully_parsed() {
+            return Err(CairoError::Identifier(format!(
+                "Unexpected remainder {:?} for {} of ty {:?}",
+                def.rem, def.canonical_name, def.ty
+            )))
+        }
+        if let Some(struct_def) = def.ty.as_struct() {
+            return Ok(struct_def)
+        } else {
+            Err(CairoError::Preprocess(format!(
+                "Expected {} to be a struct definition but found {:?}",
+                def.canonical_name, def.ty
+            )))
+        }
     }
 
     /// Returns the struct definition of a struct with no alias resultion
