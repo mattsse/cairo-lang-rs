@@ -4,14 +4,21 @@ use std::{
 };
 
 use crate::{
-    compiler::sema::{ast::StructDefinition, ScopedName},
+    compiler::{
+        sema::{
+            ast::{ScopeTracker, StructDefinition},
+            ScopedName,
+        },
+        VResult, Visitor,
+    },
     error::{CairoError, Result},
-    parser::ast::{CairoType, Loc},
+    parser::ast::{CairoType, FunctionDef, Loc, Namespace},
 };
 
 /// Manages a list of identifiers
 #[derive(Debug, Default)]
 pub struct Identifiers {
+    pub(crate) scope_tracker: ScopeTracker,
     pub(crate) root: Scope,
     pub(crate) identifiers: HashMap<ScopedName, Rc<IdentifierDefinitionType>>,
 }
@@ -29,12 +36,32 @@ impl Identifiers {
         todo!()
     }
 
-    pub fn get_struct_definition(&self, _struct_name: &ScopedName) -> Result<&StructDefinition> {
-        todo!()
+    pub fn get_struct_definition(&self, struct_name: &ScopedName) -> Result<Rc<StructDefinition>> {
+        todo!("add accessible scopes")
     }
 
-    pub fn get_struct_size(&self, _struct_name: &ScopedName) -> Result<u64> {
-        todo!()
+    /// Returns the struct definition of a struct with no alias resultion
+    fn get_struct_definition_no_alias(
+        &self,
+        struct_name: &ScopedName,
+    ) -> Result<Rc<StructDefinition>> {
+        let def = self
+            .get_by_full_name(struct_name)
+            .ok_or_else(|| CairoError::MissingIdentifier(struct_name.clone()))?;
+
+        if let Some(struct_def) = def.as_struct() {
+            Ok(struct_def)
+        } else {
+            Err(CairoError::Definition(
+                struct_name.clone(),
+                IdentifierDefinitionType::Struct(None),
+                def.as_ref().clone(),
+            ))
+        }
+    }
+
+    pub fn get_struct_size(&self, struct_name: &ScopedName) -> Result<u64> {
+        Ok(self.get_struct_definition(struct_name)?.size)
     }
 
     /// Returns the size of the given type
@@ -44,7 +71,7 @@ impl Identifiers {
             CairoType::Id(type_struct) => {
                 let scope = ScopedName::new(type_struct.name.clone());
                 if type_struct.is_fully_resolved {
-                    let def = self.get_struct_definition(&scope)?;
+                    let def = self.get_struct_definition_no_alias(&scope)?;
                     Ok(def.size)
                 } else {
                     self.get_struct_size(&scope)
@@ -154,6 +181,32 @@ impl Identifiers {
             return None
         }
         Some(resolved.ty)
+    }
+
+    pub fn current_scope(&self) -> &Rc<ScopedName> {
+        self.scope_tracker.current_scope()
+    }
+
+    pub fn scope_tracker_mut(&mut self) -> &mut ScopeTracker {
+        &mut self.scope_tracker
+    }
+}
+
+impl Visitor for Identifiers {
+    fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
+        self.scope_tracker.enter_function(f)
+    }
+
+    fn exit_function(&mut self, f: &mut FunctionDef) -> VResult {
+        self.scope_tracker.exit_function(f)
+    }
+
+    fn enter_namespace(&mut self, n: &mut Namespace) -> VResult {
+        self.scope_tracker.enter_namespace(n)
+    }
+
+    fn exit_namespace(&mut self, n: &mut Namespace) -> VResult {
+        self.scope_tracker.exit_namespace(n)
     }
 }
 
@@ -273,7 +326,7 @@ pub enum IdentifierDefinitionType {
     LocalVar,
     Function,
     Namespace,
-    Struct(Option<StructDefinition>),
+    Struct(Option<Rc<StructDefinition>>),
     TempVar,
     RValueRef,
     Alias(ScopedName),
@@ -320,6 +373,14 @@ impl IdentifierDefinitionType {
             Some(&*inner)
         } else {
             None
+        }
+    }
+
+    pub fn as_struct(&self) -> Option<Rc<StructDefinition>> {
+        match self {
+            IdentifierDefinitionType::Struct(s) => s.clone(),
+            IdentifierDefinitionType::Unresolved(inner) => inner.as_struct(),
+            _ => None,
         }
     }
 

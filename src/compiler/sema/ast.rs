@@ -153,7 +153,7 @@ impl Visitor for LangVisitor {
 }
 
 /// Tracks the current scope when traversing the AST
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ScopeTracker {
     accessible_scopes: Vec<Rc<ScopedName>>,
     file_lang: Option<String>,
