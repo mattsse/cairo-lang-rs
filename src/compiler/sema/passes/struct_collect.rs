@@ -162,7 +162,9 @@ mod tests {
     use crate::compiler::sema::{passes::identifier::IdentifierCollectorPass, CairoModule};
     use std::collections::HashMap;
 
-    fn try_collect_struct_def<'a>(codes: impl IntoIterator<Item = (&'a str, &'a str)>) -> Result<Identifiers> {
+    fn try_collect_struct_def<'a>(
+        codes: impl IntoIterator<Item = (&'a str, &'a str)>,
+    ) -> Result<Identifiers> {
         let modules = codes
             .into_iter()
             .map(|(name, code)| {
@@ -184,7 +186,7 @@ mod tests {
         try_collect_struct_def(codes).unwrap()
     }
 
-        #[test]
+    #[test]
     fn test_struct_collect() {
         let ids = collect_struct_def([
             (
@@ -344,25 +346,22 @@ const Y = 1 + 1
         assert!(resolved.is_empty());
     }
 
-
     #[test]
     fn can_collect_errors() {
-        let ids = try_collect_struct_def([
-            (
-                "module",
-                r#"
+        let ids = try_collect_struct_def([(
+            "module",
+            r#"
 struct S:
     member z : S*
     member z : S*
 end
 "#,
-            ),
-        ]);
+        )]);
         match ids {
             Err(CairoError::Redefinition(name, _)) => {
                 assert_eq!(name, "module.S.z".into())
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }

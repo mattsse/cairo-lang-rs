@@ -5,6 +5,7 @@ use crate::{
         sema::passes::{
             directives::DirectivesCollectorPass, identifier::IdentifierCollectorPass,
             import::ModuleCollectorPass, label::UniqueLabelPass,
+            struct_collect::StructCollectorPass,
         },
         ModuleReader,
     },
@@ -58,6 +59,7 @@ impl PassManagerBuilder {
                 Box::new(UniqueLabelPass::default()),
                 Box::new(IdentifierCollectorPass::default()),
                 Box::new(DirectivesCollectorPass::default()),
+                Box::new(StructCollectorPass::default()),
             ],
         }
     }
