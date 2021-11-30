@@ -25,6 +25,12 @@ pub struct Identifiers {
 }
 
 impl Identifiers {
+    pub fn resolved_identifiers(
+        &self,
+    ) -> impl Iterator<Item = (&ScopedName, &Rc<IdentifierDefinitionType>)> {
+        self.identifiers.iter().filter(|(_, id)| !id.is_unresolved())
+    }
+
     /// adds the given identifier def with the name to the current scope
     pub fn add_identifier(&mut self, name: ScopedName, ty: IdentifierDefinitionType) {
         let ty = Rc::new(ty);
@@ -233,12 +239,16 @@ impl Identifiers {
 
     /// Finds the identifier with the given name with aliases
     pub fn get(&self, name: &ScopedName) -> Result<ResolvedIdentifier> {
-        let current_identifier = name.clone();
+        let mut current_identifier = name.clone();
         let mut visited_identifiers = HashSet::from([current_identifier.clone()]);
 
         let mut resolved = self.root.get(&current_identifier)?;
         // resolve alias
-        while resolved.ty.is_alias() {
+        while let Some(alias) = resolved.ty.as_alias() {
+            current_identifier = alias.clone();
+            if let Some(rem) = resolved.rem {
+                current_identifier = current_identifier.extended(rem);
+            }
             // check for cycles
             if visited_identifiers.contains(&current_identifier) {
                 return Err(CairoError::Identifier(format!(
@@ -495,6 +505,14 @@ impl IdentifierDefinitionType {
         match self {
             IdentifierDefinitionType::Struct(s) => s.clone(),
             IdentifierDefinitionType::Unresolved(inner) => inner.as_struct(),
+            _ => None,
+        }
+    }
+
+    pub fn as_alias(&self) -> Option<&ScopedName> {
+        match self {
+            IdentifierDefinitionType::Alias(s) => Some(s),
+            IdentifierDefinitionType::Unresolved(inner) => inner.as_alias(),
             _ => None,
         }
     }

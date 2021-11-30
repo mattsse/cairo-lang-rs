@@ -59,6 +59,19 @@ impl PreprocessedProgram {
             identifiers: Default::default(),
         }
     }
+
+    pub fn with_modules(
+        main_scope: ScopedName,
+        modules: impl IntoIterator<Item = CairoModule>,
+    ) -> Self {
+        Self {
+            codes: vec![],
+            main_scope,
+            modules: modules.into_iter().collect(),
+            builtins: None,
+            identifiers: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -169,6 +182,6 @@ impl<T: AsRef<str>> From<T> for ScopedName {
 
 impl fmt::Display for ScopedName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0.join(""))
+        write!(f, "{}", self.name())
     }
 }

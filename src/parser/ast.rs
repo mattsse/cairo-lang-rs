@@ -13,8 +13,17 @@ use std::{
 };
 
 ///  start offset, end offset (in bytes)
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, Eq, Hash, Clone, Copy, Default)]
+#[cfg_attr(not(test), derive(PartialEq))]
 pub struct Loc(pub usize, pub usize);
+
+// skip comparison of locations in tests
+#[cfg(test)]
+impl PartialEq for Loc {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
 
 impl fmt::Display for Loc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

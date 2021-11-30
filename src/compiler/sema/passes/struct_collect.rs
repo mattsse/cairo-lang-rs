@@ -155,3 +155,188 @@ impl<'a> Visitor for StructVisitor<'a> {
         self.identifiers.exit_namespace(n)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::sema::{passes::identifier::IdentifierCollectorPass, CairoModule};
+    use std::collections::HashMap;
+
+    fn collect_struct_def<'a>(codes: impl IntoIterator<Item = (&'a str, &'a str)>) -> Identifiers {
+        let modules = codes
+            .into_iter()
+            .map(|(name, code)| {
+                CairoModule::new(ScopedName::from_str(name), CairoFile::parse(code).unwrap())
+            })
+            .collect::<Vec<_>>();
+
+        let mut prg = PreprocessedProgram::with_modules(ScopedName::main_scope(), modules);
+
+        let mut id_pass = IdentifierCollectorPass::default();
+        id_pass.run(&mut prg).unwrap();
+
+        let mut struct_pass = StructCollectorPass::default();
+        struct_pass.run(&mut prg).unwrap();
+        prg.identifiers
+    }
+
+    #[test]
+    fn test_struct_collect() {
+        let ids = collect_struct_def([
+            (
+                "module",
+                r#"
+struct S:
+    member x : S*
+    member y : S*
+end
+"#,
+            ),
+            (
+                "__main__",
+                r#"
+from module import S
+
+func foo{z}(a : S, b) -> (c : S):
+    struct T:
+        member x : S*
+    end
+    const X = 5
+    return (c=a + X)
+end
+const Y = 1 + 1
+"#,
+            ),
+        ]);
+
+        let mut resolved: HashMap<_, _> =
+            ids.resolved_identifiers().map(|(n, t)| (n.clone(), t.as_ref().clone())).collect();
+
+        let ty = resolved.remove(&"module.S".into()).unwrap();
+        pretty_assertions::assert_eq!(
+            ty,
+            IdentifierDefinitionType::Struct(Some(Rc::new(StructDefinition {
+                full_name: "module.S".into(),
+                members: vec![
+                    MemberDefinition {
+                        offset: 0,
+                        name: "x".to_string(),
+                        cairo_type: CairoType::Pointer(Box::new(PointerType::Single(
+                            CairoType::Id(TypeStruct {
+                                name: ScopedName::from("module.S").into_inner(),
+                                is_fully_resolved: true,
+                                loc: Loc::default()
+                            })
+                        ))),
+                        loc: Loc::default()
+                    },
+                    MemberDefinition {
+                        offset: 1,
+                        name: "y".to_string(),
+                        cairo_type: CairoType::Pointer(Box::new(PointerType::Single(
+                            CairoType::Id(TypeStruct {
+                                name: ScopedName::from("module.S").into_inner(),
+                                is_fully_resolved: true,
+                                loc: Loc::default()
+                            })
+                        ))),
+                        loc: Loc::default()
+                    }
+                ],
+                size: 2,
+                loc: Loc::default()
+            })))
+        );
+
+        let ty = resolved.remove(&"__main__.S".into()).unwrap();
+        pretty_assertions::assert_eq!(ty, IdentifierDefinitionType::Alias("module.S".into()));
+
+        let ty = resolved.remove(&"__main__.foo.Args".into()).unwrap();
+        pretty_assertions::assert_eq!(
+            ty,
+            IdentifierDefinitionType::Struct(Some(Rc::new(StructDefinition {
+                full_name: "__main__.foo.Args".into(),
+                members: vec![
+                    MemberDefinition {
+                        offset: 0,
+                        name: "a".to_string(),
+                        cairo_type: CairoType::Id(TypeStruct {
+                            name: ScopedName::from("module.S").into_inner(),
+                            is_fully_resolved: true,
+                            loc: Loc::default()
+                        }),
+                        loc: Loc::default()
+                    },
+                    MemberDefinition {
+                        offset: 2,
+                        name: "b".to_string(),
+                        cairo_type: CairoType::Felt,
+                        loc: Loc::default()
+                    },
+                ],
+                size: 3,
+                loc: Loc::default()
+            })))
+        );
+
+        let ty = resolved.remove(&"__main__.foo.ImplicitArgs".into()).unwrap();
+        pretty_assertions::assert_eq!(
+            ty,
+            IdentifierDefinitionType::Struct(Some(Rc::new(StructDefinition {
+                full_name: "__main__.foo.ImplicitArgs".into(),
+                members: vec![MemberDefinition {
+                    offset: 0,
+                    name: "z".to_string(),
+                    cairo_type: CairoType::Felt,
+                    loc: Loc::default()
+                },],
+                size: 1,
+                loc: Loc::default()
+            })))
+        );
+
+        let ty = resolved.remove(&"__main__.foo.Return".into()).unwrap();
+        pretty_assertions::assert_eq!(
+            ty,
+            IdentifierDefinitionType::Struct(Some(Rc::new(StructDefinition {
+                full_name: "__main__.foo.Return".into(),
+                members: vec![MemberDefinition {
+                    offset: 0,
+                    name: "c".to_string(),
+                    cairo_type: CairoType::Id(TypeStruct {
+                        name: ScopedName::from("module.S").into_inner(),
+                        is_fully_resolved: true,
+                        loc: Loc::default()
+                    }),
+                    loc: Loc::default()
+                },],
+                size: 2,
+                loc: Loc::default()
+            })))
+        );
+
+        let ty = resolved.remove(&"__main__.foo.T".into()).unwrap();
+        pretty_assertions::assert_eq!(
+            ty,
+            IdentifierDefinitionType::Struct(Some(Rc::new(StructDefinition {
+                full_name: "__main__.foo.T".into(),
+                members: vec![MemberDefinition {
+                    offset: 0,
+                    name: "x".to_string(),
+                    cairo_type: CairoType::Pointer(Box::new(PointerType::Single(CairoType::Id(
+                        TypeStruct {
+                            name: ScopedName::from("module.S").into_inner(),
+                            is_fully_resolved: true,
+                            loc: Loc::default()
+                        }
+                    )))),
+                    loc: Loc::default()
+                },],
+                size: 1,
+                loc: Loc::default()
+            })))
+        );
+
+        assert!(resolved.is_empty());
+    }
+}
