@@ -183,6 +183,10 @@ impl ScopeTracker {
         self.accessible_scopes.last().expect("requires at least one scope")
     }
 
+    pub fn accessible_scopes(&self) -> &[Rc<ScopedName>] {
+        &self.accessible_scopes
+    }
+
     pub fn next_scope(&self, name: String) -> ScopedName {
         let mut s = self.current_scope().as_ref().clone();
         s.push(name);

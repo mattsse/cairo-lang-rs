@@ -38,7 +38,7 @@ impl Identifiers {
             CairoType::Felt => CairoType::Felt,
             CairoType::Id(ty) => {
                 if ty.is_fully_resolved {
-                    CairoType::Id( ty)
+                    CairoType::Id(ty)
                 } else {
                     let scope = ScopedName::new(ty.name);
                     let name = self.get_canonical_struct_name(scope, ty.loc)?;
@@ -119,6 +119,64 @@ impl Identifiers {
             }
             CairoType::Pointer(_) => Ok(CairoType::POINTER_SIZE),
         }
+    }
+
+    pub fn search_current_scopes(&self, name: &ScopedName) -> Result<ResolvedIdentifier> {
+        self.search(name, self.scope_tracker.accessible_scopes())
+    }
+
+    /// Searches an identifier in the given accessible scopes
+    pub fn search(
+        &self,
+        name: &ScopedName,
+        accessible_scopes: &[Rc<ScopedName>],
+    ) -> Result<ResolvedIdentifier> {
+        for scope in accessible_scopes.iter().rev() {
+            let id = scope.as_ref().clone().extended(name.clone());
+            match self.get(&id) {
+                res @ Ok(_) => return res,
+                Err(CairoError::MissingIdentifier(err)) => {
+                    // check whether if we're currently at the first item in the name of in the
+                    // scope itself, in which case continue to the next accessible scope
+                    let (name, _) = name.clone().rev_split();
+                    if scope.as_ref().clone().extended(name).name().starts_with(&err.name()) {
+                        continue
+                    } else {
+                        return Err(CairoError::MissingIdentifier(err))
+                    }
+                }
+                res @ Err(_) => return res,
+            }
+        }
+        let name = name.clone().rev_split().0;
+        Err(CairoError::MissingIdentifier(name))
+    }
+
+    /// Searches a scope in the given accessible scopes
+    pub fn search_scope(
+        &self,
+        name: &ScopedName,
+        accessible_scopes: &[Rc<ScopedName>],
+    ) -> Result<&Scope> {
+        for scope in accessible_scopes.iter().rev() {
+            let id = scope.as_ref().clone().extended(name.clone());
+            match self.get_scope(&id) {
+                res @ Ok(_) => return res,
+                Err(CairoError::MissingIdentifier(err)) => {
+                    // check whether if we're currently at the first item in the name of in the
+                    // scope itself, in which case continue to the next accessible scope
+                    let (name, _) = name.clone().rev_split();
+                    if scope.as_ref().clone().extended(name).name().starts_with(&err.name()) {
+                        continue
+                    } else {
+                        return Err(CairoError::MissingIdentifier(err))
+                    }
+                }
+                res @ Err(_) => return res,
+            }
+        }
+        let name = name.clone().rev_split().0;
+        Err(CairoError::MissingIdentifier(name))
     }
 
     /// Adds a definition of an identifier that must be already registered
@@ -447,4 +505,10 @@ pub struct ResolvedIdentifier {
     pub ty: Rc<IdentifierDefinitionType>,
     pub canonical_name: ScopedName,
     pub rem: Option<ScopedName>,
+}
+
+impl ResolvedIdentifier {
+    pub fn is_fully_parsed(&self) -> bool {
+        self.rem.is_none()
+    }
 }

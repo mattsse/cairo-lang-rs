@@ -130,12 +130,29 @@ impl ScopedName {
 
     /// Removes the first name of the set and returns the remainder if there are any ids left
     pub fn split(mut self) -> (String, Option<ScopedName>) {
+        debug_assert!(!self.is_empty());
         let name = self.0.remove(0);
         if self.is_empty() {
             (name, None)
         } else {
             (name, Some(self))
         }
+    }
+
+    pub fn extended(mut self, scope: ScopedName) -> Self {
+        self.0.extend(scope.0.into_iter());
+        self
+    }
+
+    /// Removes the last item in the list of identifiers
+    pub fn rev_split(mut self) -> (ScopedName, Option<String>) {
+        debug_assert!(!self.is_empty());
+        let mut rem = self.0.pop();
+        if self.is_empty() {
+            self.0.push(rem.expect("scope name must not be empty."));
+            rem = None;
+        }
+        (self, rem)
     }
 
     pub fn appended(mut self, id: impl Into<String>) -> Self {
