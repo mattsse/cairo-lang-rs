@@ -2,7 +2,7 @@ use crate::{
     compiler::{
         constants::{ARG_SCOPE, IMPLICIT_ARG_SCOPE, RETURN_SCOPE},
         sema::{
-            ast::{MemberDefinition, StructDefinition},
+            ast::{macros::delegate_scope_tracking, MemberDefinition, StructDefinition},
             identifiers::{IdentifierDefinitionType, Identifiers},
             passes::Pass,
             PreprocessedProgram, ScopedName,
@@ -129,18 +129,6 @@ impl<'a> Visitor for StructVisitor<'a> {
         Ok(())
     }
 
-    fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
-        self.identifiers.enter_function(f)
-    }
-
-    fn exit_function(&mut self, f: &mut FunctionDef) -> VResult {
-        self.identifiers.exit_function(f)
-    }
-
-    fn enter_namespace(&mut self, n: &mut Namespace) -> VResult {
-        self.identifiers.enter_namespace(n)
-    }
-
     fn visit_namespace(&mut self, ns: &mut Namespace) -> VResult {
         let function_scope = self.identifiers.scope_tracker.current_scope().as_ref().clone();
         let arg_scope = function_scope.clone().appended(ARG_SCOPE);
@@ -151,9 +139,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         self.create_struct_from_identifier_list(&[], return_scope, ns.loc)
     }
 
-    fn exit_namespace(&mut self, n: &mut Namespace) -> VResult {
-        self.identifiers.exit_namespace(n)
-    }
+    delegate_scope_tracking!();
 }
 
 #[cfg(test)]

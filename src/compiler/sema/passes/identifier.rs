@@ -2,8 +2,8 @@ use crate::{
     compiler::{
         constants::{ARG_SCOPE, IMPLICIT_ARG_SCOPE, N_LOCALS_CONSTANT, RETURN_SCOPE},
         sema::{
-            identifiers::IdentifierDefinitionType, passes::Pass, Identifiers, PreprocessedProgram,
-            ScopedName,
+            ast::macros::delegate_scope_tracking, identifiers::IdentifierDefinitionType,
+            passes::Pass, Identifiers, PreprocessedProgram, ScopedName,
         },
         VResult, Visitable, Visitor,
     },
@@ -230,18 +230,6 @@ impl<'a> Visitor for IdVisitor<'a> {
         )
     }
 
-    fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
-        self.identifiers.enter_function(f)
-    }
-
-    fn exit_function(&mut self, f: &mut FunctionDef) -> VResult {
-        self.identifiers.exit_function(f)
-    }
-
-    fn enter_namespace(&mut self, n: &mut Namespace) -> VResult {
-        self.identifiers.enter_namespace(n)
-    }
-
     fn visit_namespace(&mut self, ns: &mut Namespace) -> VResult {
         let function_scope = self.identifiers.current_scope().as_ref().clone();
 
@@ -275,10 +263,6 @@ impl<'a> Visitor for IdVisitor<'a> {
         )
     }
 
-    fn exit_namespace(&mut self, n: &mut Namespace) -> VResult {
-        self.identifiers.exit_namespace(n)
-    }
-
     fn visit_if(&mut self, el: &mut IfStatement) -> VResult {
         let label_neq = el.label_neq.clone().ok_or(CairoError::MissingLabel(el.loc))?;
         let label_end = el.label_end.clone().ok_or(CairoError::MissingLabel(el.loc))?;
@@ -309,6 +293,8 @@ impl<'a> Visitor for IdVisitor<'a> {
             id.loc,
         )
     }
+
+    delegate_scope_tracking!();
 }
 
 #[cfg(test)]
