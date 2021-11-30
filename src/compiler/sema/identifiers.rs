@@ -41,7 +41,7 @@ impl Identifiers {
                     CairoType::Id(ty)
                 } else {
                     let scope = ScopedName::new(ty.name);
-                    let name = self.get_canonical_struct_name(scope, ty.loc)?;
+                    let name = self.get_canonical_struct_name(&scope)?;
                     let ty = TypeStruct {
                         name: name.into_inner(),
                         is_fully_resolved: true,
@@ -65,8 +65,17 @@ impl Identifiers {
     }
 
     /// Returns the canonical name for the struct given by scope in the current accessible_scopes
-    pub fn get_canonical_struct_name(&self, _scope: ScopedName, _loc: Loc) -> Result<ScopedName> {
-        todo!()
+    pub fn get_canonical_struct_name(&self, struct_name: &ScopedName) -> Result<ScopedName> {
+        let def = self.search(struct_name, self.scope_tracker.accessible_scopes())?;
+
+        if def.ty.is_struct() || def.ty.is_unresolved_struct() {
+            Ok(def.canonical_name)
+        } else {
+            Err(CairoError::Preprocess(format!(
+                "Expected {} to a a struct, found {:?}",
+                def.canonical_name, def.ty
+            )))
+        }
     }
 
     /// Returns the struct definition that corresponds to the given identifier.
@@ -79,7 +88,7 @@ impl Identifiers {
             )))
         }
         if let Some(struct_def) = def.ty.as_struct() {
-            return Ok(struct_def)
+            Ok(struct_def)
         } else {
             Err(CairoError::Preprocess(format!(
                 "Expected {} to be a struct definition but found {:?}",
@@ -493,6 +502,14 @@ impl IdentifierDefinitionType {
     pub fn is_unresolved_reference(&self) -> bool {
         if let IdentifierDefinitionType::Unresolved(ty) = self {
             ty.is_reference()
+        } else {
+            false
+        }
+    }
+
+    pub fn is_unresolved_struct(&self) -> bool {
+        if let IdentifierDefinitionType::Unresolved(ty) = self {
+            ty.is_struct()
         } else {
             false
         }
