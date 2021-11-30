@@ -8,16 +8,13 @@ use crate::{
 use std::collections::HashSet;
 
 #[derive(Debug)]
-pub struct PreprocessPass {
-    /// A set of decorators that may appear before a function declaration
-    pub supported_decorators: HashSet<String>,
-}
+pub struct DependencyGraphPass;
 
-impl PreprocessPass {}
+impl DependencyGraphPass {}
 
-impl Pass for PreprocessPass {
+impl Pass for DependencyGraphPass {
     fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
-        log::trace!("starting pass: Preprocessor");
+        log::trace!("starting pass: Dependency graph");
         for module in prg.modules.iter_mut() {
             module.cairo_file.visit(self)?;
         }
@@ -25,4 +22,4 @@ impl Pass for PreprocessPass {
     }
 }
 
-impl Visitor for PreprocessPass {}
+impl Visitor for DependencyGraphPass {}

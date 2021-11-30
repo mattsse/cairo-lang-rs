@@ -14,6 +14,7 @@ use crate::{
 use ethers::core::k256::U256;
 use std::fmt;
 
+mod dependencygraph;
 mod directives;
 mod identifier;
 mod import;
