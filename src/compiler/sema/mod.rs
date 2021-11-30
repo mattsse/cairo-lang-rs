@@ -116,6 +116,10 @@ impl ScopedName {
         self.0.join(".")
     }
 
+    pub fn into_inner(self) -> Identifier {
+        self.0
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

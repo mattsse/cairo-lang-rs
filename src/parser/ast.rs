@@ -396,6 +396,30 @@ pub enum PointerType {
     Double(CairoType),
 }
 
+impl PointerType {
+    pub fn is_single(&self) -> bool {
+        matches!(self, PointerType::Single(_))
+    }
+
+    pub fn is_double(&self) -> bool {
+        matches!(self, PointerType::Double(_))
+    }
+
+    pub fn pointee(&self) -> &CairoType {
+        match self {
+            PointerType::Single(ty) => ty,
+            PointerType::Double(ty) => ty,
+        }
+    }
+
+    pub fn into_pointee(self) -> CairoType {
+        match self {
+            PointerType::Single(ty) => ty,
+            PointerType::Double(ty) => ty,
+        }
+    }
+}
+
 impl fmt::Display for PointerType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

@@ -12,12 +12,13 @@ use crate::{
         VResult, Visitor,
     },
     error::{CairoError, Result},
-    parser::ast::{CairoType, FunctionDef, Loc, Namespace},
+    parser::ast::{CairoType, FunctionDef, Loc, Namespace, PointerType, TypeStruct},
 };
 
-/// Manages a list of identifiers
+/// Manages a list of identifiers and types
 #[derive(Debug, Default)]
 pub struct Identifiers {
+    /// keeps track of the scopes while traversing the AST
     pub(crate) scope_tracker: ScopeTracker,
     pub(crate) root: Scope,
     pub(crate) identifiers: HashMap<ScopedName, Rc<IdentifierDefinitionType>>,
@@ -32,7 +33,39 @@ impl Identifiers {
     }
 
     /// Resolves a `CairoType` to a fully qualified name
-    pub fn resolve_type(&mut self, _cairo_type: CairoType) -> Result<CairoType> {
+    pub fn resolve_type(&mut self, cairo_type: CairoType) -> Result<CairoType> {
+        let ty = match cairo_type {
+            CairoType::Felt => CairoType::Felt,
+            CairoType::Id(ty) => {
+                if ty.is_fully_resolved {
+                    CairoType::Id( ty)
+                } else {
+                    let scope = ScopedName::new(ty.name);
+                    let name = self.get_canonical_struct_name(scope, ty.loc)?;
+                    let ty = TypeStruct {
+                        name: name.into_inner(),
+                        is_fully_resolved: true,
+                        loc: ty.loc,
+                    };
+                    CairoType::Id(ty)
+                }
+            }
+            CairoType::Tuple(tuple) => CairoType::Tuple(
+                tuple.into_iter().map(|ty| self.resolve_type(ty)).collect::<Result<_>>()?,
+            ),
+            CairoType::Pointer(ty) => {
+                let is_single = ty.is_single();
+                let ty = self.resolve_type(ty.into_pointee())?;
+                let pointer =
+                    if is_single { PointerType::Single(ty) } else { PointerType::Double(ty) };
+                CairoType::Pointer(Box::new(pointer))
+            }
+        };
+        Ok(ty)
+    }
+
+    /// Returns the canonical name for the struct given by scope in the current accessible_scopes
+    pub fn get_canonical_struct_name(&self, _scope: ScopedName, _loc: Loc) -> Result<ScopedName> {
         todo!()
     }
 
@@ -164,7 +197,7 @@ impl Identifiers {
             }
         }
         Err(CairoError::Identifier(format!(
-            "Alias resultion failed {:?}, {}",
+            "Alias resolution failed {:?}, {}",
             visited_identifiers, current_identifier
         )))
     }
