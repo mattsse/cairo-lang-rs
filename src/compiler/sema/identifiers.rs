@@ -36,7 +36,7 @@ impl Identifiers {
         todo!()
     }
 
-    pub fn get_struct_definition(&self, struct_name: &ScopedName) -> Result<Rc<StructDefinition>> {
+    pub fn get_struct_definition(&self, _struct_name: &ScopedName) -> Result<Rc<StructDefinition>> {
         todo!("add accessible scopes")
     }
 

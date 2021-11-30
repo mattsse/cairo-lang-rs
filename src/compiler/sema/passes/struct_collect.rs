@@ -2,7 +2,7 @@ use crate::{
     compiler::{
         constants::{ARG_SCOPE, IMPLICIT_ARG_SCOPE, RETURN_SCOPE},
         sema::{
-            ast::{MemberDefinition, ScopeTracker, StructDefinition},
+            ast::{MemberDefinition, StructDefinition},
             identifiers::{IdentifierDefinitionType, Identifiers},
             passes::Pass,
             PreprocessedProgram, ScopedName,
@@ -20,7 +20,6 @@ pub struct StructCollectorPass;
 impl Pass for StructCollectorPass {
     fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
         log::trace!("starting pass: Struct Collector");
-        let mut scope_tracker = ScopeTracker::default();
         for module in prg.modules.iter_mut() {
             prg.identifiers.scope_tracker_mut().enter_scope(module.module_name.clone());
             prg.identifiers.scope_tracker_mut().enter_lang(module.lang()?);

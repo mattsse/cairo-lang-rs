@@ -2,8 +2,8 @@ use crate::{
     compiler::{
         constants::{ARG_SCOPE, IMPLICIT_ARG_SCOPE, N_LOCALS_CONSTANT, RETURN_SCOPE},
         sema::{
-            ast::ScopeTracker, identifiers::IdentifierDefinitionType, passes::Pass, Identifiers,
-            PreprocessedProgram, ScopedName,
+            identifiers::IdentifierDefinitionType, passes::Pass, Identifiers, PreprocessedProgram,
+            ScopedName,
         },
         VResult, Visitable, Visitor,
     },
@@ -19,17 +19,15 @@ pub struct IdentifierCollectorPass;
 impl Pass for IdentifierCollectorPass {
     fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
         log::trace!("starting pass: Identifier Collector");
-        let mut scope_tracker = ScopeTracker::default();
         for module in prg.modules.iter_mut() {
-            scope_tracker.enter_scope(module.module_name.clone());
-            scope_tracker.enter_lang(module.lang()?);
+            prg.identifiers.scope_tracker_mut().enter_scope(module.module_name.clone());
+            prg.identifiers.scope_tracker_mut().enter_lang(module.lang()?);
 
-            let mut visitor =
-                IdVisitor { identifiers: &mut prg.identifiers, scope_tracker: &mut scope_tracker };
+            let mut visitor = IdVisitor { identifiers: &mut prg.identifiers };
             module.cairo_file.visit(&mut visitor)?;
 
-            scope_tracker.exit_scope();
-            scope_tracker.exit_lang();
+            prg.identifiers.scope_tracker_mut().exit_scope();
+            prg.identifiers.scope_tracker_mut().exit_lang();
         }
         Ok(())
     }
@@ -38,13 +36,11 @@ impl Pass for IdentifierCollectorPass {
 /// A scope aware AST visitor that resolves full names of identifiers
 struct IdVisitor<'a> {
     identifiers: &'a mut Identifiers,
-    /// keeps track of the current scope
-    scope_tracker: &'a mut ScopeTracker,
 }
 
 impl<'a> IdVisitor<'a> {
     fn current_identifier(&self, identifier: String) -> ScopedName {
-        self.scope_tracker.next_scope(identifier)
+        self.identifiers.scope_tracker.next_scope(identifier)
     }
 
     /// adds an identifier to the underlying
@@ -182,7 +178,7 @@ impl<'a> Visitor for IdVisitor<'a> {
     }
 
     fn visit_function(&mut self, fun: &mut FunctionDef) -> VResult {
-        let function_scope = self.scope_tracker.current_scope().as_ref().clone();
+        let function_scope = self.identifiers.current_scope().as_ref().clone();
 
         self.add_unresolved_identifier(
             function_scope.clone(),
@@ -235,19 +231,19 @@ impl<'a> Visitor for IdVisitor<'a> {
     }
 
     fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
-        self.scope_tracker.enter_function(f)
+        self.identifiers.enter_function(f)
     }
 
     fn exit_function(&mut self, f: &mut FunctionDef) -> VResult {
-        self.scope_tracker.exit_function(f)
+        self.identifiers.exit_function(f)
     }
 
     fn enter_namespace(&mut self, n: &mut Namespace) -> VResult {
-        self.scope_tracker.enter_namespace(n)
+        self.identifiers.enter_namespace(n)
     }
 
     fn visit_namespace(&mut self, ns: &mut Namespace) -> VResult {
-        let function_scope = self.scope_tracker.current_scope().as_ref().clone();
+        let function_scope = self.identifiers.current_scope().as_ref().clone();
 
         self.add_unresolved_identifier(
             function_scope.clone(),
@@ -280,7 +276,7 @@ impl<'a> Visitor for IdVisitor<'a> {
     }
 
     fn exit_namespace(&mut self, n: &mut Namespace) -> VResult {
-        self.scope_tracker.exit_namespace(n)
+        self.identifiers.exit_namespace(n)
     }
 
     fn visit_if(&mut self, el: &mut IfStatement) -> VResult {
@@ -323,10 +319,8 @@ mod tests {
     fn try_visit(s: &str) -> Result<Identifiers> {
         let mut cairo = CairoFile::parse(s).unwrap();
         let mut identifiers = Identifiers::default();
-        let mut scope_tracker = ScopeTracker::default();
-        scope_tracker.enter_scope(Rc::new(ScopedName::root()));
-        let mut vistor =
-            IdVisitor { identifiers: &mut identifiers, scope_tracker: &mut scope_tracker };
+        identifiers.scope_tracker.enter_scope(Rc::new(ScopedName::root()));
+        let mut vistor = IdVisitor { identifiers: &mut identifiers };
         cairo.visit(&mut vistor)?;
         Ok(identifiers)
     }
@@ -417,11 +411,9 @@ from a import b as b0
         "#;
         let mut cairo = CairoFile::parse(s).unwrap();
         let mut identifiers = Identifiers::default();
-        let mut scope_tracker = ScopeTracker::default();
         identifiers.add_identifier(ScopedName::from_str("a.b"), IdentifierDefinitionType::ConstDef);
-        scope_tracker.enter_scope(Rc::new(ScopedName::root()));
-        let mut vistor =
-            IdVisitor { identifiers: &mut identifiers, scope_tracker: &mut scope_tracker };
+        identifiers.scope_tracker.enter_scope(Rc::new(ScopedName::root()));
+        let mut vistor = IdVisitor { identifiers: &mut identifiers };
         cairo.visit(&mut vistor).unwrap();
         let scope =
             identifiers.identifiers.get(&ScopedName::from_str("b0")).unwrap().as_ref().clone();
