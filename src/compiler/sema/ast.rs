@@ -38,10 +38,6 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn visit_expr(&mut self, _: &mut Expr) -> VResult {
-        Ok(())
-    }
-
     fn visit_type(&mut self, _: &mut CairoType) -> VResult {
         Ok(())
     }
@@ -80,23 +76,7 @@ pub trait Visitor {
         Ok(())
     }
 
-    fn enter_function(&mut self, _: &mut FunctionDef) -> VResult {
-        Ok(())
-    }
-
-    fn exit_function(&mut self, _: &mut FunctionDef) -> VResult {
-        Ok(())
-    }
-
     fn enter_namespace(&mut self, _: &mut Namespace) -> VResult {
-        Ok(())
-    }
-
-    fn visit_namespace(&mut self, _: &mut Namespace) -> VResult {
-        Ok(())
-    }
-
-    fn exit_namespace(&mut self, _: &mut Namespace) -> VResult {
         Ok(())
     }
 
@@ -109,6 +89,42 @@ pub trait Visitor {
     }
 
     fn visit_temp_var(&mut self, _: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        Ok(())
+    }
+
+    fn visit_expr(&mut self, _: &mut Expr) -> VResult {
+        Ok(())
+    }
+
+    fn visit_expr_dot(&mut self, _: &mut Expr, _: &mut String, _: Loc) -> VResult {
+        Ok(())
+    }
+
+    fn visit_expr_cat(&mut self, _: &mut Expr, _: &mut CairoType, _: Loc) -> VResult {
+        Ok(())
+    }
+
+    fn visit_expr_assignment(&mut self, _: &mut ExprAssignment) -> VResult {
+        Ok(())
+    }
+
+    fn visit_expr_identifier(&mut self, _: &mut Identifier, _: Loc) -> VResult {
+        Ok(())
+    }
+
+    fn enter_function(&mut self, _: &mut FunctionDef) -> VResult {
+        Ok(())
+    }
+
+    fn exit_function(&mut self, _: &mut FunctionDef) -> VResult {
+        Ok(())
+    }
+
+    fn visit_namespace(&mut self, _: &mut Namespace) -> VResult {
+        Ok(())
+    }
+
+    fn exit_namespace(&mut self, _: &mut Namespace) -> VResult {
         Ok(())
     }
 }
@@ -195,6 +211,11 @@ impl ScopeTracker {
 }
 
 impl Visitor for ScopeTracker {
+    fn enter_namespace(&mut self, n: &mut Namespace) -> VResult {
+        self.enter_scope(Rc::new(self.next_scope(n.name.clone())));
+        Ok(())
+    }
+
     fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
         self.enter_scope(Rc::new(self.next_scope(f.name.clone())));
         Ok(())
@@ -202,11 +223,6 @@ impl Visitor for ScopeTracker {
 
     fn exit_function(&mut self, _: &mut FunctionDef) -> VResult {
         self.exit_scope();
-        Ok(())
-    }
-
-    fn enter_namespace(&mut self, n: &mut Namespace) -> VResult {
-        self.enter_scope(Rc::new(self.next_scope(n.name.clone())));
         Ok(())
     }
 

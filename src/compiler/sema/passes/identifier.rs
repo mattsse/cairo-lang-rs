@@ -230,6 +230,37 @@ impl<'a> Visitor for IdVisitor<'a> {
         )
     }
 
+    fn visit_if(&mut self, el: &mut IfStatement) -> VResult {
+        let label_neq = el.label_neq.clone().ok_or(CairoError::MissingLabel(el.loc))?;
+        let label_end = el.label_end.clone().ok_or(CairoError::MissingLabel(el.loc))?;
+        self.add_unresolved_identifier(
+            self.current_identifier(label_neq),
+            IdentifierDefinitionType::Label,
+            el.loc,
+        )?;
+        self.add_unresolved_identifier(
+            self.current_identifier(label_end),
+            IdentifierDefinitionType::Label,
+            el.loc,
+        )
+    }
+
+    fn visit_local_var(&mut self, id: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        self.add_unresolved_identifier(
+            self.current_identifier(id.id.clone()),
+            IdentifierDefinitionType::Reference,
+            id.loc,
+        )
+    }
+
+    fn visit_temp_var(&mut self, id: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
+        self.add_unresolved_identifier(
+            self.current_identifier(id.id.clone()),
+            IdentifierDefinitionType::Reference,
+            id.loc,
+        )
+    }
+
     fn visit_namespace(&mut self, ns: &mut Namespace) -> VResult {
         let function_scope = self.identifiers.current_scope().as_ref().clone();
 
@@ -260,37 +291,6 @@ impl<'a> Visitor for IdVisitor<'a> {
             function_scope.appended(N_LOCALS_CONSTANT),
             IdentifierDefinitionType::ConstDef,
             ns.loc,
-        )
-    }
-
-    fn visit_if(&mut self, el: &mut IfStatement) -> VResult {
-        let label_neq = el.label_neq.clone().ok_or(CairoError::MissingLabel(el.loc))?;
-        let label_end = el.label_end.clone().ok_or(CairoError::MissingLabel(el.loc))?;
-        self.add_unresolved_identifier(
-            self.current_identifier(label_neq),
-            IdentifierDefinitionType::Label,
-            el.loc,
-        )?;
-        self.add_unresolved_identifier(
-            self.current_identifier(label_end),
-            IdentifierDefinitionType::Label,
-            el.loc,
-        )
-    }
-
-    fn visit_local_var(&mut self, id: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
-        self.add_unresolved_identifier(
-            self.current_identifier(id.id.clone()),
-            IdentifierDefinitionType::Reference,
-            id.loc,
-        )
-    }
-
-    fn visit_temp_var(&mut self, id: &mut TypedIdentifier, _: &mut Option<Expr>) -> VResult {
-        self.add_unresolved_identifier(
-            self.current_identifier(id.id.clone()),
-            IdentifierDefinitionType::Reference,
-            id.loc,
         )
     }
 

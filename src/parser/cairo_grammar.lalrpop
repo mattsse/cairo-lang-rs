@@ -279,8 +279,8 @@ TypeHint: CairoType = {
 }
 
 ExprAssignment: ExprAssignment = {
-    <lhs:Expr> => ExprAssignment::Expr(lhs),
-    <id:Id> "=" <rhs:Expr> => ExprAssignment::Id(id, rhs),
+    <l:@L>  <lhs:Expr> <r:@L> => ExprAssignment::Expr(lhs, Loc(l,r)),
+   <l:@L>   <id:Id> "=" <rhs:Expr> <r:@L> => ExprAssignment::Id(id, rhs, Loc(l,r)),
 }
 
 // ------------- Utils ------------------

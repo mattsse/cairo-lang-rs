@@ -464,6 +464,40 @@ pub enum Expr {
     Sub(Box<Expr>, Box<Expr>, Loc),
 }
 
+impl Visitable for Expr {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_expr(self)?;
+        match self {
+            Expr::Int(_, _) => {}
+            Expr::HexInt(_, _) => {}
+            Expr::ShortString(_, _) => {}
+            Expr::Hint(_, _) => {}
+            Expr::Register(_, _) => {}
+            Expr::FunctionCall(_) => {}
+            Expr::Id(id, loc) => {
+                v.visit_expr_identifier(id, *loc);
+            }
+            Expr::Deref(_, _) => {}
+            Expr::Subscript(_, _, _) => {}
+            Expr::Dot(expr, id, loc) => {
+                v.visit_expr_dot(&mut **expr, id, *loc);
+            }
+            Expr::Cast(expr, ty, loc) => {
+                v.visit_expr_cat(&mut **expr, ty, *loc);
+            }
+            Expr::Parentheses(_, _) => {}
+            Expr::Address(_, _) => {}
+            Expr::Neg(_, _) => {}
+            Expr::Pow(_, _, _) => {}
+            Expr::Mul(_, _, _) => {}
+            Expr::Div(_, _, _) => {}
+            Expr::Add(_, _, _) => {}
+            Expr::Sub(_, _, _) => {}
+        };
+        todo!()
+    }
+}
+
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -523,15 +557,37 @@ impl fmt::Display for Expr {
 /// Expression of  `expr | id  = expr`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExprAssignment {
-    Expr(Expr),
-    Id(String, Expr),
+    Expr(Expr, Loc),
+    Id(String, Expr, Loc),
+}
+
+impl ExprAssignment {
+    pub fn expr(&self) -> &Expr {
+        match self {
+            ExprAssignment::Expr(expr, _) => expr,
+            ExprAssignment::Id(_, expr, _) => expr,
+        }
+    }
+
+    pub fn expr_mut(&mut self) -> &mut Expr {
+        match self {
+            ExprAssignment::Expr(expr, _) => expr,
+            ExprAssignment::Id(_, expr, _) => expr,
+        }
+    }
+}
+
+impl Visitable for ExprAssignment {
+    fn visit(&mut self, v: &mut dyn Visitor) -> VResult {
+        v.visit_expr_assignment(self)
+    }
 }
 
 impl fmt::Display for ExprAssignment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ExprAssignment::Expr(expr) => expr.fmt(f),
-            ExprAssignment::Id(lhs, rhs) => {
+            ExprAssignment::Expr(expr, _) => expr.fmt(f),
+            ExprAssignment::Id(lhs, rhs, _) => {
                 write!(f, "{} = {}", lhs, rhs)
             }
         }
