@@ -18,8 +18,8 @@ thiserror = "1.0.30"
 unicode-xid = "0.2.2"
 
 # compiler deps
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.72"
+serde = { version = "1.0.131", features = ["derive"] }
+serde_json = "1.0.73"
 ethers = { git = "https://github.com/gakonst/ethers-rs" }
 eyre = "0.6.5"
 log = "0.4.14"

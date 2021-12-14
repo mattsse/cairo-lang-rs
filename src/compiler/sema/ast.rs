@@ -233,23 +233,34 @@ impl Visitor for ScopeTracker {
 }
 
 pub(crate) mod macros {
-
     /// an internal macro that delegates entering and exiting scopes
     macro_rules! delegate_scope_tracking {
         () => {
-            fn enter_function(&mut self, f: &mut FunctionDef) -> VResult {
+            fn enter_function(
+                &mut self,
+                f: &mut crate::parser::ast::FunctionDef,
+            ) -> crate::compiler::VResult {
                 self.identifiers.enter_function(f)
             }
 
-            fn exit_function(&mut self, f: &mut FunctionDef) -> VResult {
+            fn exit_function(
+                &mut self,
+                f: &mut crate::parser::ast::FunctionDef,
+            ) -> crate::compiler::VResult {
                 self.identifiers.exit_function(f)
             }
 
-            fn enter_namespace(&mut self, n: &mut Namespace) -> VResult {
+            fn enter_namespace(
+                &mut self,
+                n: &mut crate::parser::ast::Namespace,
+            ) -> crate::compiler::VResult {
                 self.identifiers.enter_namespace(n)
             }
 
-            fn exit_namespace(&mut self, n: &mut Namespace) -> VResult {
+            fn exit_namespace(
+                &mut self,
+                n: &mut crate::parser::ast::Namespace,
+            ) -> crate::compiler::VResult {
                 self.identifiers.exit_namespace(n)
             }
         };
