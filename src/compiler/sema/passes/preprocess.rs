@@ -1,10 +1,7 @@
 use crate::{
     compiler::{
-        sema::{
-            ast::macros::delegate_scope_tracking, identifiers::Identifiers, passes::Pass,
-            PreprocessedProgram,
-        },
-        Visitable, Visitor,
+        sema::{passes::Pass, PreprocessedProgram},
+        Visitor,
     },
     error::Result,
 };
@@ -27,26 +24,31 @@ pub struct PreprocessPass {
 impl PreprocessPass {}
 
 impl Pass for PreprocessPass {
-    fn run(&mut self, prg: &mut PreprocessedProgram) -> Result<()> {
+    fn run(&mut self, _prg: &mut PreprocessedProgram) -> Result<()> {
         log::trace!("starting pass: Preprocessor");
-        for module in prg.modules.iter_mut() {
-            prg.identifiers.scope_tracker_mut().enter_scope(module.module_name.clone());
-            prg.identifiers.scope_tracker_mut().enter_lang(module.lang()?);
+        // for module in prg.modules.iter_mut() {
+        //     prg.identifiers.scope_tracker_mut().enter_scope(module.module_name.clone());
+        //     prg.identifiers.scope_tracker_mut().enter_lang(module.lang()?);
 
-            let mut visitor = PreprocessVisitor { identifiers: &mut prg.identifiers };
-            module.cairo_file.visit(&mut visitor)?;
+        //     let mut visitor = PreprocessVisitor::new(prg);
+        //     module.cairo_file.visit(&mut visitor)?;
 
-            prg.identifiers.scope_tracker_mut().exit_scope();
-            prg.identifiers.scope_tracker_mut().exit_lang();
-        }
+        //     prg.identifiers.scope_tracker_mut().exit_scope();
+        //     prg.identifiers.scope_tracker_mut().exit_lang();
+        // }
         Ok(())
     }
 }
 
 struct PreprocessVisitor<'a> {
-    identifiers: &'a mut Identifiers,
+    pass: &'a PreprocessPass,
+    prg: &'a mut PreprocessedProgram,
 }
 
-impl<'a> Visitor for PreprocessVisitor<'a> {
-    delegate_scope_tracking!();
+impl<'a> PreprocessVisitor<'a> {
+    fn new(_prg: &'a mut PreprocessedProgram) -> Self {
+        todo!()
+    }
 }
+
+impl<'a> Visitor for PreprocessVisitor<'a> {}

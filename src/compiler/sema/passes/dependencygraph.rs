@@ -39,17 +39,40 @@ impl Pass for DependencyGraphPass {
     }
 }
 
+/// Visitor that tracks the dependencies between scope and identifier
 struct GraphVisitor<'a> {
     identifiers: &'a mut Identifiers,
+    /// scope names to all the identifiers it uses.
     visited_identifiers: HashMap<ScopedName, Vec<ScopedName>>,
+    /// the current function we're tracking
+    current_function: Option<ScopedName>,
 }
 
 impl<'a> GraphVisitor<'a> {
     pub fn new(identifiers: &'a mut Identifiers) -> Self {
-        Self { identifiers, visited_identifiers: Default::default() }
+        Self {
+            identifiers,
+            visited_identifiers: Default::default(),
+            current_function: Default::default(),
+        }
+    }
+
+    fn add_identifier(&mut self) {
+        todo!()
     }
 }
 
 impl<'a> Visitor for GraphVisitor<'a> {
+    fn visit_import(&mut self, _import: &mut ImportDirective) -> VResult {
+        todo!()
+    }
+    fn visit_function(&mut self, _: &mut FunctionDef) -> VResult {
+        todo!()
+    }
+
+    fn visit_expr_dot(&mut self, _: &mut Expr, _: &mut String, _: Loc) -> VResult {
+        todo!()
+    }
+
     delegate_scope_tracking!();
 }

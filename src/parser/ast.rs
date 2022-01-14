@@ -15,6 +15,7 @@ use std::{
 ///  start offset, end offset (in bytes)
 #[derive(Debug, Eq, Hash, Clone, Copy, Default)]
 #[cfg_attr(not(test), derive(PartialEq))]
+#[cfg_attr(test, allow(clippy::derive_hash_xor_eq))]
 pub struct Loc(pub usize, pub usize);
 
 // skip comparison of locations in tests
@@ -475,15 +476,15 @@ impl Visitable for Expr {
             Expr::Register(_, _) => {}
             Expr::FunctionCall(_) => {}
             Expr::Id(id, loc) => {
-                v.visit_expr_identifier(id, *loc);
+                v.visit_expr_identifier(id, *loc)?;
             }
             Expr::Deref(_, _) => {}
             Expr::Subscript(_, _, _) => {}
             Expr::Dot(expr, id, loc) => {
-                v.visit_expr_dot(&mut **expr, id, *loc);
+                v.visit_expr_dot(&mut **expr, id, *loc)?;
             }
             Expr::Cast(expr, ty, loc) => {
-                v.visit_expr_cat(&mut **expr, ty, *loc);
+                v.visit_expr_cat(&mut **expr, ty, *loc)?;
             }
             Expr::Parentheses(_, _) => {}
             Expr::Address(_, _) => {}
